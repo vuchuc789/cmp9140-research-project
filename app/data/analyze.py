@@ -3,38 +3,39 @@ import numpy as np
 import pandas as pd
 
 
-def analyze():
-    df = pd.read_parquet("data/Benign.parquet.zst")
+def analyze(filepath="data/Benign.parquet.zst"):
+    df = pd.read_parquet(filepath)
     print(df.info(verbose=True))
+    print("Duplicate Count: ", df.duplicated().sum())
 
     df["Source IP"].value_counts().head(20).plot(kind="bar")
-    plt.title("Top 20 Source IPs")
+    plt.title(f"Top 20 Source IPs ({filepath})")
     plt.xlabel("IP Address")
     plt.ylabel("Count")
     plt.xticks(rotation=45)
     plt.show()
 
     df["Source Port"].plot.hist(bins=64)
-    plt.title("Source Ports")
+    plt.title(f"Source Ports ({filepath})")
     plt.xlabel("Port")
     plt.ylabel("Count")
     plt.show()
 
     df["Destination IP"].value_counts().head(20).plot(kind="bar")
-    plt.title("Top 20 Destination IPs")
+    plt.title(f"Top 20 Destination IPs ({filepath})")
     plt.xlabel("IP Address")
     plt.ylabel("Count")
     plt.xticks(rotation=45)
     plt.show()
 
     df["Destination Port"].plot.hist(bins=64)
-    plt.title("Destination Ports")
+    plt.title(f"Destination Ports ({filepath})")
     plt.xlabel("Port")
     plt.ylabel("Count")
     plt.show()
 
     df = df.select_dtypes(include="number")
-    df = np.log(df + 1).astype(np.float32)
+    df = np.log1p(df).astype(np.float32)
 
     fig, axes = plt.subplots(2, 4, figsize=(12, 6), sharey="row")
 
@@ -59,7 +60,7 @@ def analyze():
         if i % 8 == 7 or i == len(df.columns) - 1:
             print(f"Showing page {i // 8 + 1}...")
 
-            plt.suptitle("Benign Data Statistics")
+            plt.suptitle(f"Data Statistics ({filepath})")
             plt.tight_layout()
             plt.show()
 

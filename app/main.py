@@ -1,7 +1,8 @@
 import argparse
-import sys
 
 from app.data.analyze import analyze
+from app.data.data import DDoSDataset
+from app.data.downsample import downsample
 from app.data.preprocess import preprocess
 
 
@@ -11,27 +12,80 @@ def main():
         description="CMP9140 Research Project - DDoS Detection with Federated Learning",
         epilog="Author: Chuc Van Vu (29630583@students.lincoln.ac.uk)",
     )
+    parser.set_defaults(func=lambda _: parser.print_help())
 
-    parser.add_argument(
+    subparsers = parser.add_subparsers()
+
+    data_parser = subparsers.add_parser("data", help="process data")
+    data_parser.add_argument(
         "--preprocess",
         action="store_true",
         help="(re)preprocess raw data",
     )
-    parser.add_argument(
+    data_parser.add_argument(
+        "--downsample",
+        action="store_true",
+        help="downsample huge subsets",
+    )
+    data_parser.add_argument(
         "--analyze",
         action="store_true",
         help="show data analysis",
     )
+    data_parser.add_argument(
+        "--analyze-file",
+        help="path to data file",
+    )
+    data_parser.set_defaults(func=lambda args: data_command(data_parser, args))
+
+    train_parser = subparsers.add_parser("train", help="train model")
+    train_parser.add_argument(
+        "--centralized",
+        action="store_true",
+        help="proceed centralized training",
+    )
+    train_parser.set_defaults(func=lambda args: train_command(train_parser, args))
 
     args = parser.parse_args()
+    args.func(args)
+
+
+def data_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    print_help = True
 
     if args.preprocess:
+        print_help = False
         preprocess()
 
-    if args.analyze:
-        analyze()
+    if args.downsample:
+        print_help = False
+        downsample()
 
-    if len(sys.argv) == 1:
+    if args.analyze:
+        print_help = False
+        if args.analyze_file is not None:
+            analyze(args.analyze_file)
+        else:
+            analyze()
+
+    if print_help:
+        parser.print_help()
+
+
+def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    print_help = True
+
+    if args.centralized:
+        print_help = False
+        print(
+            DDoSDataset(
+                "data/Benign.parquet.zst",
+                split="train",
+                # save_normalization=True,
+            )[0]
+        )
+
+    if print_help:
         parser.print_help()
 
 
