@@ -1,9 +1,9 @@
 import argparse
 
 from app.data.analyze import analyze
-from app.data.data import DDoSDataset
 from app.data.downsample import downsample
 from app.data.preprocess import preprocess
+from app.model.train import train
 
 
 def main():
@@ -77,13 +77,7 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
 
     if args.centralized:
         print_help = False
-        print(
-            DDoSDataset(
-                "data/Benign.parquet.zst",
-                split="train",
-                # save_normalization=True,
-            )[0]
-        )
+        train()
 
     if print_help:
         parser.print_help()
