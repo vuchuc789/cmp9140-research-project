@@ -1,67 +1,79 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 
 def analyze(filepath="data/Benign.parquet.zst"):
     df = pd.read_parquet(filepath)
     print(df.info(verbose=True))
-    print("Duplicate Count: ", df.duplicated().sum())
+    print("Duplicate Count:", df.duplicated().sum())
 
-    df["Source IP"].value_counts().head(20).plot(kind="bar")
-    plt.title(f"Top 20 Source IPs ({filepath})")
-    plt.xlabel("IP Address")
-    plt.ylabel("Count")
-    plt.xticks(rotation=45)
-    plt.show()
+    # Seaborn style
+    sns.set(style="whitegrid")
 
-    df["Source Port"].plot.hist(bins=64)
-    plt.title(f"Source Ports ({filepath})")
-    plt.xlabel("Port")
-    plt.ylabel("Count")
-    plt.show()
+    # ───── IP Frequency ─────
+    def plot_top_ips(column, title):
+        top_ips = df[column].value_counts().head(20)
+        plt.figure(figsize=(10, 5))
+        sns.barplot(x=top_ips.index, y=top_ips.values)
+        plt.title(f"{title} ({filepath})", fontsize=14)
+        plt.xlabel("IP Address", fontsize=12)
+        plt.ylabel("Count", fontsize=12)
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        plt.show()
 
-    df["Destination IP"].value_counts().head(20).plot(kind="bar")
-    plt.title(f"Top 20 Destination IPs ({filepath})")
-    plt.xlabel("IP Address")
-    plt.ylabel("Count")
-    plt.xticks(rotation=45)
-    plt.show()
+    plot_top_ips("Source IP", "Top 20 Source IPs")
+    plot_top_ips("Destination IP", "Top 20 Destination IPs")
 
-    df["Destination Port"].plot.hist(bins=64)
-    plt.title(f"Destination Ports ({filepath})")
-    plt.xlabel("Port")
-    plt.ylabel("Count")
-    plt.show()
+    # ───── Port Histograms ─────
+    def plot_port_dist(column, title):
+        plt.figure(figsize=(8, 5))
+        sns.histplot(df[column], bins=64, kde=False, color="steelblue")
+        plt.title(f"{title} ({filepath})", fontsize=14)
+        plt.xlabel("Port", fontsize=12)
+        plt.ylabel("Count", fontsize=12)
+        plt.tight_layout()
+        plt.show()
 
-    df = df.select_dtypes(include="number")
-    df = np.log1p(df).astype(np.float32)
+    plot_port_dist("Source Port", "Source Port Distribution")
+    plot_port_dist("Destination Port", "Destination Port Distribution")
 
-    fig, axes = plt.subplots(2, 4, figsize=(12, 6), sharey="row")
+    # ───── Numeric Feature Stats ─────
+    df_numeric = df.select_dtypes(include="number")
+    df_numeric = np.log1p(df_numeric).astype(np.float32)
 
-    for i, col in enumerate(df.columns):
-        df[col].plot.hist(bins=50, alpha=0.5, ax=axes[(i // 4) % 2, i % 4])
-        axes[(i // 4) % 2, i % 4].set_title(col)
-        stats = (
-            f"max = {np.max(df[col]):.2e}\n"
-            f"min = {np.min(df[col]):.2e}\n"
-            f"$\\mu$ = {np.mean(df[col]):.2e}\n"
-            f"$\\sigma$ = {np.std(df[col]):.2e}\n"
-        )
-        axes[(i // 4) % 2, i % 4].text(
-            0.95,
-            0.65,
-            stats,
-            fontsize=9,
-            transform=axes[(i // 4) % 2, i % 4].transAxes,
-            horizontalalignment="right",
-        )
+    num_cols = df_numeric.shape[1]
+    cols_per_page = 8
 
-        if i % 8 == 7 or i == len(df.columns) - 1:
-            print(f"Showing page {i // 8 + 1}...")
+    for page_start in range(0, num_cols, cols_per_page):
+        page_cols = df_numeric.columns[page_start : page_start + cols_per_page]
+        fig, axes = plt.subplots(2, 4, figsize=(14, 6), sharey="row")
 
-            plt.suptitle(f"Data Statistics ({filepath})")
-            plt.tight_layout()
-            plt.show()
+        for i, col in enumerate(page_cols):
+            ax = axes[i // 4, i % 4]
+            sns.histplot(df_numeric[col], bins=50, ax=ax, color="darkorange", alpha=0.7)
+            ax.set_title(col, fontsize=11)
+            ax.ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
 
-            fig, axes = plt.subplots(2, 4, figsize=(12, 6), sharey="row")
+            stats = (
+                f"max = {np.max(df_numeric[col]):.2e}\n"
+                f"min = {np.min(df_numeric[col]):.2e}\n"
+                f"μ = {np.mean(df_numeric[col]):.2e}\n"
+                f"σ = {np.std(df_numeric[col]):.2e}"
+            )
+            ax.text(
+                0.95,
+                0.65,
+                stats,
+                fontsize=9,
+                transform=ax.transAxes,
+                horizontalalignment="right",
+                verticalalignment="top",
+                bbox=dict(facecolor="white", alpha=0.6, edgecolor="gray"),
+            )
+
+        fig.suptitle(f"Log-Scaled Feature Distributions ({filepath})", fontsize=14)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        plt.show()

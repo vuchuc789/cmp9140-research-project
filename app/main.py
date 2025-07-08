@@ -3,6 +3,7 @@ import argparse
 from app.data.analyze import analyze
 from app.data.downsample import downsample
 from app.data.preprocess import preprocess
+from app.model.evaluate import evaluate
 from app.model.train import train
 
 
@@ -44,6 +45,16 @@ def main():
         action="store_true",
         help="proceed centralized training",
     )
+    train_parser.add_argument(
+        "--model-name",
+        default="model",
+        help="model name",
+    )
+    train_parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="evaluate model",
+    )
     train_parser.set_defaults(func=lambda args: train_command(train_parser, args))
 
     args = parser.parse_args()
@@ -77,7 +88,11 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
 
     if args.centralized:
         print_help = False
-        train()
+        train(args.model_name)
+
+    if args.evaluate:
+        print_help = False
+        evaluate(args.model_name)
 
     if print_help:
         parser.print_help()

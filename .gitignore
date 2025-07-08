@@ -2,6 +2,7 @@
 **/__pycache__/
 
 data/**/*
-!data/.gitkeep
+!data/Benign.parquet.zst
+!data/Anomalous.parquet.zst
 
 **/.DS_Store

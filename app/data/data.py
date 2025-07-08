@@ -109,7 +109,7 @@ def load_data(batch_size: int):
         transform=torch.from_numpy,
     )
     anomalous_data = DDoSDataset(
-        "data/Anomaly.parquet.zst",
+        "data/Anomalous.parquet.zst",
         split="all",
         save_normalization=False,
         transform=torch.from_numpy,

@@ -1,3 +1,4 @@
+import math
 import os
 from glob import glob
 
@@ -10,7 +11,7 @@ from app.utils.file import convert_size
 
 def downsample():
     data_dir = "data"
-    downsampled_file = "Anomaly.parquet.zst"
+    downsampled_file = "Anomalous.parquet.zst"
     downsampled_path = f"{data_dir}/{downsampled_file}"
 
     if os.path.exists(downsampled_path):
@@ -37,7 +38,9 @@ def downsample():
 
         print(f"Downsampling {parquet_path}...")
         df = pd.read_parquet(parquet_path)
-        sample_num = round(file_size[parquet_path] * benign_size / anomalous_size)
+        sample_num = math.ceil(
+            file_size[parquet_path] * benign_size / anomalous_size * 0.2
+        )
         df = df.sample(n=sample_num, random_state=1)
 
         table = pa.Table.from_pandas(df, preserve_index=False)
