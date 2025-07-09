@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from sklearn.impute import KNNImputer
 from sklearn.metrics import auc, precision_recall_curve, roc_curve
 from torch import nn
 from torch.utils.data import DataLoader
@@ -41,7 +42,7 @@ def evaluate(model_name: str):
     model_dir = "model"
     params_path = f"{model_dir}/{model_name}_params.pth"
     history_path = f"{model_dir}/{model_name}_history.npy"
-    loss_path = f"{model_dir}/{model_name}_loss.npy"
+    evaluation_path = f"{model_dir}/{model_name}_eval.npy"
 
     print("Loading data...\n")
     train_loader, test_loader, anomaly_loader = load_data(batch_size)
@@ -57,12 +58,16 @@ def evaluate(model_name: str):
 
     print("Evaluating anomaly detection performace...")
 
-    if os.path.exists(loss_path):
+    load_cache = os.path.exists(evaluation_path)
+
+    if load_cache:
         print("\nLoading loss from cache...")
-        with open(loss_path, "rb") as f:
+        with open(evaluation_path, "rb") as f:
             train_loss = np.load(f)
             benign_loss = np.load(f)
             anomalous_loss = np.load(f)
+
+            read_pos = f.tell()
     else:
         print("\nCalculating training loss (without batching)...")
         train_loss = calculate_loss(
@@ -84,7 +89,7 @@ def evaluate(model_name: str):
         )
 
         print("\nSaving loss to cache...")
-        with open(loss_path, "wb") as f:
+        with open(evaluation_path, "wb") as f:
             np.save(f, train_loss)
             np.save(f, benign_loss)
             np.save(f, anomalous_loss)
@@ -98,15 +103,30 @@ def evaluate(model_name: str):
     precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
 
     f1_scores = 2 * (precision * recall) / (precision + recall)
-    # f1_scores = (
-    #     2 * (precision * recall) / (precision + recall + 1e-10)  # prevent dividing by 0
-    # )
+    # f1_scores canbe nan or inf due to dividing by 0, so impute these values
+    imputer = KNNImputer(n_neighbors=2)
+    f1_scores[np.abs(f1_scores) == np.inf] = np.nan
+    f1_scores = imputer.fit_transform(f1_scores.reshape(-1, 1)).reshape(-1)
 
-    accuracy = np.zeros_like(thresholds)
-    print("\nCalculating accuracy...\n")
-    for i, t in enumerate(thresholds):
-        y_pred = (y_scores >= t).astype(int)
-        accuracy[i] = np.mean(y_pred == y_true)
+    if load_cache:
+        print("\nLoading accuracy from cache...\n")
+        with open(evaluation_path, "rb") as f:
+            f.seek(read_pos)
+            accuracy = np.load(f)
+    else:
+        # Accuracy cannot be inferred from precision and recall
+        accuracy = np.zeros_like(thresholds)
+        print("\nCalculating accuracy...")
+        for i, t in enumerate(thresholds):
+            y_pred = (y_scores >= t).astype(int)
+            accuracy[i] = np.mean(y_pred == y_true)
+            if (i + 1) % 1000 == len(thresholds) % 1000:
+                print(
+                    f"[{i + 1:>3d}/{len(thresholds):>3d}] accuracy: {accuracy[i]:>7f}"
+                )
+        print("\nSaving accuracy to cache...\n")
+        with open(evaluation_path, "ab") as f:
+            np.save(f, accuracy)
 
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
@@ -121,8 +141,8 @@ def evaluate(model_name: str):
 
     print("Showing result...\n")
 
-    print(f"Avg training loss: {batched_train_loss[-1]:>7f}")
-    print(f"Avg testing loss: {batched_test_loss[-1]:>7f}\n")
+    print(f"Avg training loss (from training history): {batched_train_loss[-1]:>7f}")
+    print(f"Avg testing loss (from training history): {batched_test_loss[-1]:>7f}\n")
 
     print(f"Training Loss (MSE) Mean (μ): {train_loss_mean:.4f}")
     print(f"Training Loss (MSE) Std (σ): {train_loss_std:.4f}\n")

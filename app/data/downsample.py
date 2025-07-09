@@ -1,4 +1,3 @@
-import math
 import os
 from glob import glob
 
@@ -9,7 +8,7 @@ import pyarrow.parquet as pq
 from app.utils.file import convert_size
 
 
-def downsample():
+def downsample(ratio=0.2):
     data_dir = "data"
     downsampled_file = "Anomalous.parquet.zst"
     downsampled_path = f"{data_dir}/{downsampled_file}"
@@ -38,10 +37,14 @@ def downsample():
 
         print(f"Downsampling {parquet_path}...")
         df = pd.read_parquet(parquet_path)
-        sample_num = math.ceil(
-            file_size[parquet_path] * benign_size / anomalous_size * 0.2
+        sample_num = round(
+            file_size[parquet_path] * benign_size / anomalous_size * ratio
         )
-        df = df.sample(n=sample_num, random_state=1)
+
+        if sample_num <= 0:
+            continue
+        elif sample_num < file_size[parquet_path]:
+            df = df.sample(n=sample_num, random_state=1)
 
         table = pa.Table.from_pandas(df, preserve_index=False)
         if pq_writer is None:

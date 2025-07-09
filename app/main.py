@@ -29,6 +29,10 @@ def main():
         help="downsample huge subsets",
     )
     data_parser.add_argument(
+        "--anomaly-ratio",
+        help="anomaly ratio",
+    )
+    data_parser.add_argument(
         "--analyze",
         action="store_true",
         help="show data analysis",
@@ -70,7 +74,11 @@ def data_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> N
 
     if args.downsample:
         print_help = False
-        downsample()
+
+        if args.anomaly_ratio is not None:
+            downsample(float(args.anomaly_ratio))
+        else:
+            downsample()
 
     if args.analyze:
         print_help = False
