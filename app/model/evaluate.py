@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import auc, precision_recall_curve, roc_curve
+import seaborn as sns
+from sklearn.metrics import auc, confusion_matrix, precision_recall_curve, roc_curve
 
 
 def evaluate(
@@ -39,6 +40,9 @@ def evaluate(
     y_pred = (y_scores >= best_threshold).astype(int)
     best_accuracy = np.mean(y_pred == y_true)
 
+    cm = confusion_matrix(y_true, y_pred)
+    tn, fp, fn, tp = cm.ravel()
+
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
 
     train_loss_mean = np.mean(train_loss)
@@ -53,9 +57,16 @@ def evaluate(
 
     print(f"Mean (μ) of Training Loss (MSE): {train_loss_mean:.4f}")
     print(f"Std  (σ) of Training Loss (MSE): {train_loss_std:.4f}\n")
+
     print(
         f"Threshold: {best_threshold:.4f} = μ + σ × {(best_threshold - train_loss_mean) / train_loss_std:.4f} (selected based on F1-score)\n"
     )
+
+    print(f"True Negatives : {tn:>5d}")
+    print(f"False Positives: {fp:>5d}")
+    print(f"False Negatives: {fn:>5d}")
+    print(f"True Positives : {tp:>5d}\n")
+
     print(f"Precision: {best_precision:.4f}")
     print(f"Recall   : {best_recall:.4f}")
     print(f"F1-score : {best_f1:.4f}")
@@ -138,7 +149,7 @@ def evaluate(
         best_threshold,
         color="black",
         linestyle="--",
-        linewidth=2,
+        linewidth=1,
         label=f"Threshold ({best_threshold:.4f})",
     )
 
@@ -147,6 +158,23 @@ def evaluate(
     plt.ylabel("Density", fontsize=12)
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        cbar=True,
+        xticklabels=["Benign", "Anomaly"],
+        yticklabels=["Benign", "Anomaly"],
+    )
+
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title("Confusion Matrix")
     plt.tight_layout()
     plt.show()
 
@@ -182,7 +210,7 @@ def evaluate(
         best_threshold,
         color="black",
         linestyle="--",
-        linewidth=2,
+        linewidth=1,
         label=f"Threshold ({best_threshold:.4f})",
     )
 

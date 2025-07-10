@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 from app.data.data import load_data
 from app.model.model import Autoencoder
+from app.utils.print import verbose_print
 
 
 def train_loop(
@@ -17,6 +18,7 @@ def train_loop(
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer,
     device: str = "cpu",
+    verbose=True,
 ):
     num_batches = len(dataloader)
     losses = []
@@ -46,7 +48,9 @@ def train_loop(
         optimizer.step()
 
         if (batch + 1) % 100 == num_batches % 100:
-            print(f"[{batch + 1:>3d}/{num_batches:>3d}] loss: {loss.item():>7f}")
+            verbose_print(
+                verbose, f"[{batch + 1:>4d}/{num_batches:>4d}] loss: {loss.item():>7f}"
+            )
 
     return np.concat(losses)
 
@@ -57,6 +61,7 @@ def test_loop(
     model: nn.Module,
     loss_fn: nn.Module,
     device: str = "cpu",
+    verbose=True,
 ):
     benign_loss = []
     anomalous_loss = []
@@ -75,11 +80,12 @@ def test_loop(
             benign_loss.append(loss.cpu().numpy())
 
             if (batch + 1) % 100 == len(benign_dataloader) % 100:
-                print(
-                    f"[{batch + 1:>3d}/{len(benign_dataloader):>3d}] loss: {loss.mean().item():>7f}"
+                verbose_print(
+                    verbose,
+                    f"[{batch + 1:>3d}/{len(benign_dataloader):>3d}] loss: {loss.mean().item():>7f}",
                 )
 
-        print()
+        verbose_print(verbose)
 
         for batch, x in enumerate(anomalous_dataloader):
             x = x.to(device)
@@ -91,8 +97,9 @@ def test_loop(
 
             anomalous_loss.append(loss.cpu().numpy())
             if (batch + 1) % 100 == len(anomalous_dataloader) % 100:
-                print(
-                    f"[{batch + 1:>3d}/{len(anomalous_dataloader):>3d}] loss: {loss.mean().item():>7f}"
+                verbose_print(
+                    verbose,
+                    f"[{batch + 1:>3d}/{len(anomalous_dataloader):>3d}] loss: {loss.mean().item():>7f}",
                 )
 
     benign_loss = np.concat(benign_loss)
@@ -118,6 +125,8 @@ def train(
     batch_size=64,
     learning_rate=1e-3,
     epochs=5,
+    regularization_rate=0,
+    verbose=True,
 ):
     if model_name is not None:
         model_dir = "model"
@@ -126,9 +135,9 @@ def train(
 
         if not os.path.exists(model_path):
             for file in glob(f"{model_dir}/{model_name}*"):
-                print(f"Delete {file}...")
+                verbose_print(verbose, f"Delete {file}...")
                 os.remove(file)
-            print()
+            verbose_print(verbose)
 
     # Get supported compute device
     device = (
@@ -136,9 +145,9 @@ def train(
         if torch.accelerator.is_available()
         else "cpu"
     )
-    print(f"Using device: {device}\n")
+    verbose_print(verbose, f"Using device: {device}\n")
 
-    print("Loading data...\n")
+    verbose_print(verbose, "Loading data...\n")
     train_loader, benign_test_loader, anomalous_test_loader = load_data(batch_size)
 
     match model_type:
@@ -149,11 +158,15 @@ def train(
         case "mae":
             loss_fn = nn.MSELoss(reduction="none")
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=regularization_rate,
+    )
 
     epoch = 0
     if model_name is not None and os.path.exists(model_path):
-        print("Loading checkpoint...\n")
+        verbose_print(verbose, "Loading checkpoint...\n")
         checkpoint = torch.load(model_path, weights_only=True)
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -164,38 +177,40 @@ def train(
     anomalous_test_losses = np.zeros(epochs)
     auc = np.zeros(epochs)
 
-    print("Training model...")
+    verbose_print(verbose, "Training model...\n")
     for i in range(epochs):
-        print(f"Epoch: {epoch + i + 1}")
+        verbose_print(verbose, f"Epoch: {epoch + i + 1}")
         train_loss = train_loop(
             dataloader=train_loader,
             model=model,
             loss_fn=loss_fn,
             optimizer=optimizer,
             device=device,
+            verbose=verbose,
         )
-        print()
+        verbose_print(verbose)
         benign_test_loss, anomalous_test_loss, auc[i] = test_loop(
             benign_dataloader=benign_test_loader,
             anomalous_dataloader=anomalous_test_loader,
             model=model,
             loss_fn=loss_fn,
             device=device,
+            verbose=verbose,
         )
-        print()
+        verbose_print(verbose)
 
         train_losses[i] = np.mean(train_loss)
         benign_test_losses[i] = np.mean(benign_test_loss)
         anomalous_test_losses[i] = np.mean(anomalous_test_loss)
 
-        print(f"Train Loss: {train_losses[i]:>8f}")
-        print(f"Benign Test Loss: {benign_test_losses[i]:>8f}")
-        print(f"Anomalous Test Loss: {anomalous_test_losses[i]:>8f}")
-        print(f"AUC: {auc[i]:>8f}")
-        print()
+        verbose_print(verbose, f"Train Loss          : {train_losses[i]:>8f}")
+        verbose_print(verbose, f"Benign Test Loss    : {benign_test_losses[i]:>8f}")
+        verbose_print(verbose, f"Anomalous Test Loss : {anomalous_test_losses[i]:>8f}")
+        verbose_print(verbose, f"AUC                 : {auc[i]:>8f}")
+        verbose_print(verbose)
 
     if model_name is not None:
-        print("Saving model...\n")
+        verbose_print(verbose, "Saving model...")
         torch.save(
             {
                 "epoch": epoch + epochs,

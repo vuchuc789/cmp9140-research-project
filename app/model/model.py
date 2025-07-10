@@ -6,24 +6,20 @@ class Autoencoder(nn.Module):
         super().__init__()
 
         self.encoder = nn.Sequential(
-            nn.Linear(79, 32),
+            nn.Linear(79, 64),
             nn.ReLU(),
-            # nn.Linear(64, 32),
-            # nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
             nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 8),
             nn.ReLU(),
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(8, 16),
-            nn.ReLU(),
             nn.Linear(16, 32),
             nn.ReLU(),
-            # nn.Linear(32, 64),
-            # nn.ReLU(),
-            nn.Linear(32, 79),
+            nn.Linear(32, 64),
+            nn.ReLU(),
+            nn.Linear(64, 79),
             nn.Sigmoid(),
         )
 
