@@ -1,3 +1,10 @@
+from collections import OrderedDict
+from typing import List
+
+import numpy as np
+import torch
+
+
 def generate_model_name(
     model_type: str,
     loss_type: str,
@@ -20,3 +27,13 @@ def parse_model_name(model_name: str):
         int(split[4]),
         float(split[5]),
     )
+
+
+def set_parameters(net, parameters: List[np.ndarray]):
+    params_dict = zip(net.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+    net.load_state_dict(state_dict, strict=True)
+
+
+def get_parameters(net) -> List[np.ndarray]:
+    return [val.cpu().numpy() for _, val in net.state_dict().items()]

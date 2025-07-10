@@ -96,7 +96,7 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
 
     if args.centralized:
         print_help = False
-        train(args.model_name)
+        train(model_name=args.model_name)
 
     if args.evaluate:
         print_help = False

@@ -1,98 +1,23 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
-from sklearn.impute import KNNImputer
 from sklearn.metrics import auc, precision_recall_curve, roc_curve
-from torch import nn
-from torch.utils.data import DataLoader
-
-from app.data.data import load_data
-from app.model.model import Autoencoder
 
 
-def calculate_loss(
-    dataloader: DataLoader,
-    model: nn.Module,
-    loss_fn: nn.Module,
+def evaluate(
+    model_name: str,
 ):
-    model = model.to("cpu")
-    losses = np.zeros(len(dataloader.dataset))
-
-    model.eval()
-    with torch.no_grad():
-        for i, (x, _) in enumerate(dataloader.dataset):
-            pred = model(x)
-            loss = loss_fn(pred, x)
-            losses[i] = loss.numpy()
-            if (i + 1) % 1000 == len(dataloader.dataset) % 1000:
-                print(
-                    f"[{i + 1:>3d}/{len(dataloader.dataset):>3d}] loss: {loss.item():>7f}"
-                )
-
-    return losses
-
-
-def evaluate(model_name: str):
-    # use a random value for compatibility
-    # further calculations won't handle in batches
-    batch_size = 1024
-
     model_dir = "model"
-    params_path = f"{model_dir}/{model_name}_params.pth"
     history_path = f"{model_dir}/{model_name}_history.npy"
-    evaluation_path = f"{model_dir}/{model_name}_eval.npy"
 
-    print("Loading data...\n")
-    train_loader, test_loader, anomaly_loader = load_data(batch_size)
-
-    model = Autoencoder()
-    loss_fn = nn.MSELoss()
-
-    print("Loading model...\n")
-    model.load_state_dict(torch.load(params_path, weights_only=True))
+    print("Loading training result...")
     with open(history_path, "rb") as f:
         batched_train_loss = np.load(f)
-        batched_test_loss = np.load(f)
-
-    print("Evaluating anomaly detection performace...")
-
-    load_cache = os.path.exists(evaluation_path)
-
-    if load_cache:
-        print("\nLoading loss from cache...")
-        with open(evaluation_path, "rb") as f:
-            train_loss = np.load(f)
-            benign_loss = np.load(f)
-            anomalous_loss = np.load(f)
-
-            read_pos = f.tell()
-    else:
-        print("\nCalculating training loss (without batching)...")
-        train_loss = calculate_loss(
-            dataloader=train_loader,
-            model=model,
-            loss_fn=loss_fn,
-        )
-        print("\nCalculating benign loss (without batching)...")
-        benign_loss = calculate_loss(
-            dataloader=test_loader,
-            model=model,
-            loss_fn=loss_fn,
-        )
-        print("\nCalculating anomalous loss (without batching)...")
-        anomalous_loss = calculate_loss(
-            dataloader=anomaly_loader,
-            model=model,
-            loss_fn=loss_fn,
-        )
-
-        print("\nSaving loss to cache...")
-        with open(evaluation_path, "wb") as f:
-            np.save(f, train_loss)
-            np.save(f, benign_loss)
-            np.save(f, anomalous_loss)
+        batched_benign_test_loss = np.load(f)
+        batched_anomalous_test_loss = np.load(f)
+        batched_auc = np.load(f)
+        train_loss = np.load(f)
+        benign_loss = np.load(f)
+        anomalous_loss = np.load(f)
 
     y_scores = np.concatenate([benign_loss, anomalous_loss])
     y_true = np.concatenate([np.zeros(len(benign_loss)), np.ones(len(anomalous_loss))])
@@ -102,38 +27,18 @@ def evaluate(model_name: str):
 
     precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
 
-    f1_scores = 2 * (precision * recall) / (precision + recall)
-    # f1_scores canbe nan or inf due to dividing by 0, so impute these values
-    imputer = KNNImputer(n_neighbors=2)
-    f1_scores[np.abs(f1_scores) == np.inf] = np.nan
-    f1_scores = imputer.fit_transform(f1_scores.reshape(-1, 1)).reshape(-1)
-
-    if load_cache:
-        print("\nLoading accuracy from cache...\n")
-        with open(evaluation_path, "rb") as f:
-            f.seek(read_pos)
-            accuracy = np.load(f)
-    else:
-        # Accuracy cannot be inferred from precision and recall
-        accuracy = np.zeros_like(thresholds)
-        print("\nCalculating accuracy...")
-        for i, t in enumerate(thresholds):
-            y_pred = (y_scores >= t).astype(int)
-            accuracy[i] = np.mean(y_pred == y_true)
-            if (i + 1) % 1000 == len(thresholds) % 1000:
-                print(
-                    f"[{i + 1:>3d}/{len(thresholds):>3d}] accuracy: {accuracy[i]:>7f}"
-                )
-        print("\nSaving accuracy to cache...\n")
-        with open(evaluation_path, "ab") as f:
-            np.save(f, accuracy)
+    # f1_scores canbe nan due to dividing by 0
+    f1_scores = np.nan_to_num(2 * (precision * recall) / (precision + recall))
 
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
     best_precision = precision[best_idx]
     best_recall = recall[best_idx]
     best_f1 = f1_scores[best_idx]
-    best_accuracy = accuracy[best_idx]
+
+    y_pred = (y_scores >= best_threshold).astype(int)
+    best_accuracy = np.mean(y_pred == y_true)
+
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
 
     train_loss_mean = np.mean(train_loss)
@@ -141,39 +46,71 @@ def evaluate(model_name: str):
 
     print("Showing result...\n")
 
-    print(f"Avg training loss (from training history): {batched_train_loss[-1]:>7f}")
-    print(f"Avg testing loss (from training history): {batched_test_loss[-1]:>7f}\n")
-
-    print(f"Training Loss (MSE) Mean (μ): {train_loss_mean:.4f}")
-    print(f"Training Loss (MSE) Std (σ): {train_loss_std:.4f}\n")
+    print(f"Avg Training Loss (from training history): {batched_train_loss[-1]:>7f}")
     print(
-        f"Best threshold (based on F1-score): {best_threshold:.4f} = μ + σ × {(best_threshold - train_loss_mean) / train_loss_std:.4f}\n"
+        f"Avg Testing  Loss (from training history): {batched_benign_test_loss[-1]:>7f}\n"
+    )
+
+    print(f"Mean (μ) of Training Loss (MSE): {train_loss_mean:.4f}")
+    print(f"Std  (σ) of Training Loss (MSE): {train_loss_std:.4f}\n")
+    print(
+        f"Threshold: {best_threshold:.4f} = μ + σ × {(best_threshold - train_loss_mean) / train_loss_std:.4f} (selected based on F1-score)\n"
     )
     print(f"Precision: {best_precision:.4f}")
-    print(f"Recall: {best_recall:.4f}")
-    print(f"F1-score: {best_f1:.4f}")
-    print(f"Accuracy: {best_accuracy:.4f}")
+    print(f"Recall   : {best_recall:.4f}")
+    print(f"F1-score : {best_f1:.4f}")
+    print(f"Accuracy : {best_accuracy:.4f}")
+    print(f"AUC      : {roc_auc:.4f}")
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+
+    # Plot training and validation losses
+    ax1.plot(
         batched_train_loss,
         label="Training Loss",
         color="royalblue",
         linewidth=2,
     )
-    plt.plot(
-        batched_test_loss,
+    ax1.plot(
+        batched_benign_test_loss,
         label="Validation Loss",
         color="tomato",
         linewidth=2,
         linestyle="--",
     )
+    ax1.plot(
+        batched_anomalous_test_loss,
+        label="Anomalous Loss",
+        color="crimson",
+        linewidth=2,
+        linestyle=":",
+    )
 
-    plt.title("Autoencoder Learning Curve", fontsize=14)
-    plt.xlabel("Epoch", fontsize=12)
-    plt.ylabel("Loss (MSE)", fontsize=12)
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.5)
+    ax1.set_xlabel("Epoch", fontsize=12)
+    ax1.set_ylabel("Loss (MSE)", fontsize=12)
+    ax1.grid(True, linestyle="--", alpha=0.5)
+
+    # Second Y-axis for AUC
+    ax2 = ax1.twinx()
+    ax2.plot(
+        batched_auc,
+        label="AUC",
+        color="mediumseagreen",
+        linewidth=2,
+        linestyle="-.",
+    )
+    ax2.set_ylabel("AUC", fontsize=12)
+    ax2.set_ylim(0.0, 1.05)
+
+    # Combine legends
+    lines_1, labels_1 = ax1.get_legend_handles_labels()
+    lines_2, labels_2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="center right")
+
+    plt.title(
+        "Autoencoder Learning Curve + Anomaly Loss + AUC (from training history)",
+        fontsize=14,
+    )
     plt.tight_layout()
     plt.show()
 
@@ -234,12 +171,11 @@ def evaluate(model_name: str):
     plt.grid(True)
     plt.show()
 
-    # Threshold vs Precision, Recall, F1, Accuracy
+    # Threshold vs Precision, Recall, F1-score
     plt.figure(figsize=(8, 5))
     plt.plot(thresholds, precision[:-1], label="Precision")
     plt.plot(thresholds, recall[:-1], label="Recall")
-    plt.plot(thresholds, f1_scores[:-1], label="F1-score")
-    plt.plot(thresholds, accuracy, label="Accuracy", linestyle="--")
+    plt.plot(thresholds, f1_scores[:-1], label="F1-score", linestyle="--")
 
     # Add vertical line at best threshold
     plt.axvline(
@@ -252,7 +188,7 @@ def evaluate(model_name: str):
 
     plt.xlabel("Threshold")
     plt.ylabel("Score")
-    plt.title("Threshold vs Precision / Recall / F1 / Accuracy")
+    plt.title("Threshold vs Precision / Recall / F1-score ")
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
