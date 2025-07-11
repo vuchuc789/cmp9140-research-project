@@ -1,10 +1,10 @@
 import argparse
 
-from app.data.analyze import analyze
-from app.data.downsample import downsample
-from app.data.preprocess import preprocess
-from app.model.evaluate import evaluate
-from app.model.train import fit_model, init_model
+from data.analyze import analyze
+from data.downsample import downsample
+from data.preprocess import preprocess
+from model.evaluate import evaluate
+from model.train import fit_model, init_model
 
 
 def main():
