@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from app.data.data import load_data
-from app.model.model import Autoencoder
+from app.model.model import Autoencoder, init_weights
 from app.utils.print import verbose_print
 
 
@@ -118,26 +118,20 @@ def test_loop(
     return benign_loss, anomalous_loss, auc
 
 
-def train(
+def init_model(
     model_name: str = None,
     model_type="ae",
     loss_type="mae",
     batch_size=64,
     learning_rate=1e-3,
-    epochs=5,
     regularization_rate=0,
-    verbose=True,
+    partition="none",
+    partition_id=0,
+    verbose=False,
 ):
     if model_name is not None:
         model_dir = "model"
         model_path = f"{model_dir}/{model_name}_model.pth"
-        history_path = f"{model_dir}/{model_name}_history.npy"
-
-        if not os.path.exists(model_path):
-            for file in glob(f"{model_dir}/{model_name}*"):
-                verbose_print(verbose, f"Delete {file}...")
-                os.remove(file)
-            verbose_print(verbose)
 
     # Get supported compute device
     device = (
@@ -148,7 +142,9 @@ def train(
     verbose_print(verbose, f"Using device: {device}\n")
 
     verbose_print(verbose, "Loading data...\n")
-    train_loader, benign_test_loader, anomalous_test_loader = load_data(batch_size)
+    train_loader, benign_test_loader, anomalous_test_loader = load_data(
+        batch_size, partition, partition_id
+    )
 
     match model_type:
         case "ae":
@@ -164,40 +160,84 @@ def train(
         weight_decay=regularization_rate,
     )
 
-    epoch = 0
+    current_epoch: int = 0
     if model_name is not None and os.path.exists(model_path):
         verbose_print(verbose, "Loading checkpoint...\n")
         checkpoint = torch.load(model_path, weights_only=True)
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        epoch = checkpoint["epoch"]
+        current_epoch = checkpoint["epoch"]
+    else:
+        model.apply(init_weights)  # apply init weights if no checkpoint
+
+    return (
+        model,
+        loss_fn,
+        optimizer,
+        current_epoch,
+        device,
+        train_loader,
+        benign_test_loader,
+        anomalous_test_loader,
+    )
+
+
+def fit_model(
+    model: nn.Module,
+    loss_fn: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    current_epoch=0,
+    device="cpu",
+    train_loader: DataLoader = None,
+    benign_test_loader: DataLoader = None,
+    anomalous_test_loader: DataLoader = None,
+    model_name: str = None,
+    epochs=1,
+    verbose=False,
+):
+    if model_name is not None:
+        model_dir = "model"
+        model_path = f"{model_dir}/{model_name}_model.pth"
+        history_path = f"{model_dir}/{model_name}_history.npy"
+
+        if not os.path.exists(model_path):
+            for file in glob(f"{model_dir}/{model_name}*"):
+                os.remove(file)
 
     train_losses = np.zeros(epochs)
     benign_test_losses = np.zeros(epochs)
     anomalous_test_losses = np.zeros(epochs)
     auc = np.zeros(epochs)
 
-    verbose_print(verbose, "Training model...\n")
+    # Fallback arrays
+    train_loss = np.zeros(1)
+    benign_test_loss = np.zeros(1)
+    anomalous_test_loss = np.zeros(1)
+
+    verbose_print(verbose, "Fitting model...\n")
     for i in range(epochs):
-        verbose_print(verbose, f"Epoch: {epoch + i + 1}")
-        train_loss = train_loop(
-            dataloader=train_loader,
-            model=model,
-            loss_fn=loss_fn,
-            optimizer=optimizer,
-            device=device,
-            verbose=verbose,
-        )
-        verbose_print(verbose)
-        benign_test_loss, anomalous_test_loss, auc[i] = test_loop(
-            benign_dataloader=benign_test_loader,
-            anomalous_dataloader=anomalous_test_loader,
-            model=model,
-            loss_fn=loss_fn,
-            device=device,
-            verbose=verbose,
-        )
-        verbose_print(verbose)
+        verbose_print(verbose, f"Epoch: {current_epoch + i + 1}")
+        if train_loader is not None:
+            train_loss = train_loop(
+                dataloader=train_loader,
+                model=model,
+                loss_fn=loss_fn,
+                optimizer=optimizer,
+                device=device,
+                verbose=verbose,
+            )
+            verbose_print(verbose)
+
+        if benign_test_loader is not None and anomalous_test_loader is not None:
+            benign_test_loss, anomalous_test_loss, auc[i] = test_loop(
+                benign_dataloader=benign_test_loader,
+                anomalous_dataloader=anomalous_test_loader,
+                model=model,
+                loss_fn=loss_fn,
+                device=device,
+                verbose=verbose,
+            )
+            verbose_print(verbose)
 
         train_losses[i] = np.mean(train_loss)
         benign_test_losses[i] = np.mean(benign_test_loss)
@@ -213,7 +253,7 @@ def train(
         verbose_print(verbose, "Saving model...")
         torch.save(
             {
-                "epoch": epoch + epochs,
+                "epoch": current_epoch + epochs,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
             },
@@ -232,6 +272,7 @@ def train(
                 anomalous_test_history = np.load(f)
                 auc_history = np.load(f)
 
+        # Write order is matter
         with open(history_path, "wb") as f:
             # Append results to the history
             np.save(
@@ -260,3 +301,5 @@ def train(
             np.save(f, train_loss)
             np.save(f, benign_test_loss)
             np.save(f, anomalous_test_loss)
+
+    return benign_test_losses[-1]

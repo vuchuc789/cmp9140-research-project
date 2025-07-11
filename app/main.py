@@ -4,7 +4,7 @@ from app.data.analyze import analyze
 from app.data.downsample import downsample
 from app.data.preprocess import preprocess
 from app.model.evaluate import evaluate
-from app.model.train import train
+from app.model.train import fit_model, init_model
 
 
 def main():
@@ -55,6 +55,10 @@ def main():
         help="model name",
     )
     train_parser.add_argument(
+        "--epochs",
+        help="number of epochs",
+    )
+    train_parser.add_argument(
         "--evaluate",
         action="store_true",
         help="evaluate model",
@@ -96,7 +100,16 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
 
     if args.centralized:
         print_help = False
-        train(model_name=args.model_name)
+        config = init_model(model_name=args.model_name, verbose=True)
+        if args.epochs:
+            fit_model(
+                *config,
+                epochs=int(args.epochs),
+                model_name=args.model_name,
+                verbose=True,
+            )
+        else:
+            fit_model(*config, model_name=args.model_name, verbose=True)
 
     if args.evaluate:
         print_help = False

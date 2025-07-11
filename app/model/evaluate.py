@@ -1,7 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from sklearn.metrics import auc, confusion_matrix, precision_recall_curve, roc_curve
+from sklearn.metrics import (
+    auc,
+    confusion_matrix,
+    precision_recall_curve,
+    roc_curve,
+)
 
 
 def evaluate(
@@ -10,7 +15,7 @@ def evaluate(
     model_dir = "model"
     history_path = f"{model_dir}/{model_name}_history.npy"
 
-    print("Loading training result...")
+    print("Loading training result...\n")
     with open(history_path, "rb") as f:
         batched_train_loss = np.load(f)
         batched_benign_test_loss = np.load(f)
@@ -20,6 +25,10 @@ def evaluate(
         benign_loss = np.load(f)
         anomalous_loss = np.load(f)
 
+    print("Calculating metrics...\n")
+    train_loss_mean = np.mean(train_loss)
+    train_loss_std = np.std(train_loss)
+
     y_scores = np.concatenate([benign_loss, anomalous_loss])
     y_true = np.concatenate([np.zeros(len(benign_loss)), np.ones(len(anomalous_loss))])
 
@@ -28,25 +37,35 @@ def evaluate(
 
     precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
 
+    f1_scores = 2 * (precision * recall) / (precision + recall)
     # f1_scores canbe nan due to dividing by 0
-    f1_scores = np.nan_to_num(2 * (precision * recall) / (precision + recall))
+    f1_scores = np.nan_to_num(f1_scores)
+
+    # Shape: (num_thresholds, num_samples)
+    # pred_matrix = (y_scores.reshape(1, -1) >= thresholds.reshape(-1, 1)).astype(int)
+    # Shape: (num_thresholds,)
+    # accuracy = np.mean(pred_matrix == y_true.reshape(1, -1), axis=1)
+
+    accuracy = np.zeros_like(thresholds)
+    for i, t in enumerate(thresholds):
+        y_pred = (y_scores >= t).astype(int)
+        accuracy[i] = np.mean(y_pred == y_true)
+        if (i + 1) % 1000 == len(thresholds) % 1000:
+            print(f"[{i + 1:>4d}/{len(thresholds):>4d}] loss: {accuracy[i]:>7f}")
 
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
     best_precision = precision[best_idx]
     best_recall = recall[best_idx]
     best_f1 = f1_scores[best_idx]
+    best_accuracy = accuracy[best_idx]
 
+    # y_pred = pred_matrix[best_idx]
     y_pred = (y_scores >= best_threshold).astype(int)
-    best_accuracy = np.mean(y_pred == y_true)
-
     cm = confusion_matrix(y_true, y_pred)
     tn, fp, fn, tp = cm.ravel()
 
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
-
-    train_loss_mean = np.mean(train_loss)
-    train_loss_std = np.std(train_loss)
 
     print("Showing result...\n")
 
@@ -203,7 +222,8 @@ def evaluate(
     plt.figure(figsize=(8, 5))
     plt.plot(thresholds, precision[:-1], label="Precision")
     plt.plot(thresholds, recall[:-1], label="Recall")
-    plt.plot(thresholds, f1_scores[:-1], label="F1-score", linestyle="--")
+    plt.plot(thresholds, f1_scores[:-1], label="F1-score")
+    plt.plot(thresholds, accuracy, label="Accuracy", linestyle="--")
 
     # Add vertical line at best threshold
     plt.axvline(
@@ -216,7 +236,7 @@ def evaluate(
 
     plt.xlabel("Threshold")
     plt.ylabel("Score")
-    plt.title("Threshold vs Precision / Recall / F1-score ")
+    plt.title("Threshold vs Precision / Recall / F1-score / Accuracy ")
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
