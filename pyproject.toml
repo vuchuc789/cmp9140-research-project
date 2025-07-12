@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "CMP9140 Research Project"
+name = "cmp9134-research-project"
 version = "1.0.0"
 description = "CMP9140 Research Project - DDoS Detection with Federated Learning"
 license = "Apache-2.0"
@@ -77,7 +77,6 @@ dependencies = [
     "tomli==2.2.1",
     "tomli_w==1.2.0",
     "torch==2.7.1",
-    "torchvision==0.22.1",
     "tqdm==4.67.1",
     "typer==0.12.5",
     "typing_extensions==4.14.1",
