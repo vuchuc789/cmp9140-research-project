@@ -71,11 +71,6 @@ class DDoSDataset(Dataset):
         for i, col in enumerate(protocol.columns):
             df.insert(protocol_idx + i, col, protocol[col])
 
-        # Split train/test
-        if split in ["train", "test"]:
-            train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
-            df = train_df if split == "train" else test_df
-
         # Simulate non-iid data
         self.partitioner = None
         if partition != "none":
@@ -112,6 +107,12 @@ class DDoSDataset(Dataset):
 
         # No longer need partition ids
         df.drop(columns=["Source IP"], inplace=True)
+
+        # Split train/test
+        if split in ["train", "test"]:
+            train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+            df = train_df if split == "train" else test_df
+
         self.data = df.values.astype(np.float32, casting="same_kind")
         self.transform = transform
 
@@ -137,12 +138,16 @@ def load_data(batch_size: int, partition="none", partition_id=0):
     benign_data_test = DDoSDataset(
         "data/Benign.parquet.zst",
         split="test",
+        partition=partition,
+        partition_id=partition_id,
         save_normalization=False,
         transform=torch.from_numpy,
     )
     anomalous_data = DDoSDataset(
         "data/Anomalous.parquet.zst",
         split="all",
+        partition=partition,
+        partition_id=partition_id,
         save_normalization=False,
         transform=torch.from_numpy,
     )

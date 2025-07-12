@@ -51,7 +51,7 @@ def evaluate(
         y_pred = (y_scores >= t).astype(int)
         accuracy[i] = np.mean(y_pred == y_true)
         if (i + 1) % 1000 == len(thresholds) % 1000:
-            print(f"[{i + 1:>4d}/{len(thresholds):>4d}] loss: {accuracy[i]:>7f}")
+            print(f"[{i + 1:>4d}/{len(thresholds):>4d}] accuracy: {accuracy[i]:>7f}")
 
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
