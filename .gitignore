@@ -1,6 +1,8 @@
 data/**/*
 !data/Benign.parquet.zst
 !data/Anomalous.parquet.zst
+!data/MinMaxScaler.gz
+!data/Protocol_OneHotEncoder.gz
 
 **/.DS_Store
 

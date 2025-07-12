@@ -46,9 +46,9 @@ class DDoSDataset(Dataset):
             ).set_output(transform="pandas")
 
             enc.fit(protocol)
-            joblib.dump(enc, "model/Protocol_OneHotEncoder.gz")
+            joblib.dump(enc, "data/Protocol_OneHotEncoder.gz")
         else:
-            enc: OneHotEncoder = joblib.load("model/Protocol_OneHotEncoder.gz")
+            enc: OneHotEncoder = joblib.load("data/Protocol_OneHotEncoder.gz")
 
         protocol: pd.DataFrame = enc.transform(protocol)
         protocol_idx = df.columns.get_loc("Protocol")  # for futher inserts
@@ -61,9 +61,9 @@ class DDoSDataset(Dataset):
 
         if save_normalization:
             scaler = MinMaxScaler().fit(df[num_columns])
-            joblib.dump(scaler, "model/MinMaxScaler.gz")
+            joblib.dump(scaler, "data/MinMaxScaler.gz")
         else:
-            scaler = joblib.load("model/MinMaxScaler.gz")
+            scaler = joblib.load("data/MinMaxScaler.gz")
 
         df[num_columns] = scaler.transform(df[num_columns])
 

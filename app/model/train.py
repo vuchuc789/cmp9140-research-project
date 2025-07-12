@@ -118,6 +118,12 @@ def test_loop(
     return benign_loss, anomalous_loss, auc
 
 
+def get_model(model_type="ae"):
+    match model_type:
+        case "ae":
+            return Autoencoder()
+
+
 def init_model(
     model_name: str = None,
     model_type="ae",
@@ -146,9 +152,7 @@ def init_model(
         batch_size, partition, partition_id
     )
 
-    match model_type:
-        case "ae":
-            model = Autoencoder().to(device)
+    model = get_model(model_type).to(device)
 
     match loss_type:
         case "mae":
@@ -165,8 +169,13 @@ def init_model(
         verbose_print(verbose, "Loading checkpoint...\n")
         checkpoint = torch.load(model_path, weights_only=True)
         model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        current_epoch = checkpoint["epoch"]
+
+        if "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+        if "epoch" in checkpoint:
+            current_epoch = checkpoint["epoch"]
+
     else:
         model.apply(init_weights)  # apply init weights if no checkpoint
 
