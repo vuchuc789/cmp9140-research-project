@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fed"
+name = "CMP9140 Research Project"
 version = "1.0.0"
-description = ""
+description = "CMP9140 Research Project - DDoS Detection with Federated Learning"
 license = "Apache-2.0"
 dependencies = [
     "aiohappyeyeballs==2.6.1",
@@ -91,7 +91,7 @@ dependencies = [
 packages = ["."]
 
 [tool.flwr.app]
-publisher = "Chuc Van Vu"
+publisher = "Chuc Van Vu (29630583@students.lincoln.ac.uk)"
 
 [tool.flwr.app.components]
 serverapp = "fed.server_app:app"

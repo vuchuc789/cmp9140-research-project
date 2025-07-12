@@ -26,14 +26,15 @@ class DDoSDataset(Dataset):
         df = pd.read_parquet(data_file)
 
         # Drop unused columns
-        df = df.drop(
+        df.drop(
             columns=[
                 # "Source IP",  # used as partition id for Flower partioners
                 "Source Port",
                 "Destination IP",
                 "Destination Port",
                 "Timestamp",
-            ]
+            ],
+            inplace=True,
         )
 
         # Do one-hot encoding on the protocol column
@@ -51,7 +52,7 @@ class DDoSDataset(Dataset):
 
         protocol: pd.DataFrame = enc.transform(protocol)
         protocol_idx = df.columns.get_loc("Protocol")  # for futher inserts
-        df = df.drop(columns=["Protocol"])
+        df.drop(columns=["Protocol"], inplace=True)
 
         # Normalizing other numeric columns
         num_columns = df.select_dtypes(include="number").columns
@@ -96,15 +97,21 @@ class DDoSDataset(Dataset):
                         group_size=int(partition[1]),
                     )
 
+            original_columns = df.columns
             # Flower partitioners use pyarrow datasets
             dataset = PADatatset.from_pandas(df)
             self.partitioner.dataset = dataset
 
             # Convert back to pandas dataframe
             df = self.partitioner.load_partition(partition_id).to_pandas()
+            # Drop surprising columns
+            df.drop(
+                columns=[col for col in df.columns if col not in original_columns],
+                inplace=True,
+            )
 
         # No longer need partition ids
-        df = df.drop(columns=["Source IP"])
+        df.drop(columns=["Source IP"], inplace=True)
         self.data = df.values.astype(np.float32, casting="same_kind")
         self.transform = transform
 

@@ -185,7 +185,7 @@ def init_model(
 def fit_model(
     model: nn.Module,
     loss_fn: nn.Module,
-    optimizer: torch.optim.Optimizer,
+    optimizer: torch.optim.Optimizer = None,
     current_epoch=0,
     device="cpu",
     train_loader: DataLoader = None,
@@ -302,4 +302,4 @@ def fit_model(
             np.save(f, benign_test_loss)
             np.save(f, anomalous_test_loss)
 
-    return benign_test_losses[-1]
+    return train_losses[-1], benign_test_losses[-1], anomalous_test_losses[-1]

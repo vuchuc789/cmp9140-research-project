@@ -1,9 +1,9 @@
-"""fed: A Flower / PyTorch app."""
-
 from flwr.common import Context, ndarrays_to_parameters
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.strategy import FedAvg
-from fed.task import Net, get_weights
+
+from model.train import init_model
+from utils.model import get_parameters
 
 
 def server_fn(context: Context):
@@ -12,7 +12,8 @@ def server_fn(context: Context):
     fraction_fit = context.run_config["fraction-fit"]
 
     # Initialize model parameters
-    ndarrays = get_weights(Net())
+    net, *_ = init_model()
+    ndarrays = get_parameters(net)
     parameters = ndarrays_to_parameters(ndarrays)
 
     # Define strategy
