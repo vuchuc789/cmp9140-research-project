@@ -2,8 +2,8 @@ from flwr.common import Context, ndarrays_to_parameters
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.strategy import FedAvg
 
-from model.train import init_model
-from utils.model import get_parameters
+from app.model.train import init_model
+from app.utils.model import get_parameters
 
 
 def server_fn(context: Context):

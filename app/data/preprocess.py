@@ -8,8 +8,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from utils.file import convert_size
-from utils.pandas import col_name_mapping, data_types, dropped_columns, label_map
+from app.utils.file import convert_size
+from app.utils.pandas import col_name_mapping, data_types, dropped_columns, label_map
 
 
 def handle_label_group(

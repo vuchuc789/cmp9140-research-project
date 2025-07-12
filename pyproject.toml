@@ -94,8 +94,8 @@ packages = ["."]
 publisher = "Chuc Van Vu (29630583@students.lincoln.ac.uk)"
 
 [tool.flwr.app.components]
-serverapp = "fed.server_app:app"
-clientapp = "fed.client_app:app"
+serverapp = "app.fed.server_app:app"
+clientapp = "app.fed.client_app:app"
 
 [tool.flwr.app.config]
 num-server-rounds = 3

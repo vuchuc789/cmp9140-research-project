@@ -3,8 +3,8 @@ from flwr.common import Context
 from torch import nn, optim
 from torch.utils.data import DataLoader
 
-from model.train import fit_model, init_model
-from utils.model import get_parameters, set_parameters
+from app.model.train import fit_model, init_model
+from app.utils.model import get_parameters, set_parameters
 
 
 # Define Flower Client and client_fn

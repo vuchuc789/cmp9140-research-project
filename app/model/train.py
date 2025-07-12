@@ -7,9 +7,9 @@ from sklearn.metrics import roc_auc_score
 from torch import nn
 from torch.utils.data import DataLoader
 
-from data.data import load_data
-from model.model import Autoencoder, init_weights
-from utils.print import verbose_print
+from app.data.data import load_data
+from app.model.model import Autoencoder, init_weights
+from app.utils.print import verbose_print
 
 
 def train_loop(

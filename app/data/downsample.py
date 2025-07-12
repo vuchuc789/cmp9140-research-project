@@ -5,7 +5,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from utils.file import convert_size
+from app.utils.file import convert_size
 
 
 def downsample(ratio=0.2):
