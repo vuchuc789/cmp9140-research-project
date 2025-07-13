@@ -90,7 +90,7 @@ class Strategy(FedAvg):
             )
             set_parameters(net, aggregated_ndarrays)
 
-            print(f"Saving round {server_round} model...")
+            # print(f"Saving round {server_round} model...")
             torch.save({"model_state_dict": net.state_dict()}, model_path)
             torch.save({"model_state_dict": net.state_dict()}, round_path)
 
