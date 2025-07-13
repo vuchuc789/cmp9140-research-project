@@ -1,4 +1,3 @@
-import os
 from typing import Optional, Union
 
 import numpy as np
@@ -67,19 +66,6 @@ def aggregate_evaluate_metrics(
     }
 
 
-def get_history_paths(server_round: int):
-    model_dir = "model"
-    model_path = f"{model_dir}/round_{server_round}_model.pth"
-    history_path = f"{model_dir}/round_{server_round}_history.npy"
-    previous_history_path = (
-        history_path
-        if os.path.exists(history_path)
-        else f"{model_dir}/round_{server_round - 1}_history.npy"
-    )
-
-    return model_path, previous_history_path, history_path
-
-
 class Strategy(FedAvg):
     def aggregate_fit(
         self,
@@ -92,9 +78,10 @@ class Strategy(FedAvg):
             server_round, results, failures
         )
 
-        model_path, previous_history_path, history_path = get_history_paths(
-            server_round
-        )
+        model_dir = "model"
+        model_path = f"{model_dir}/round_model.pth"
+        round_path = f"{model_dir}/round_{server_round}_model.pth"
+        history_path = f"{model_dir}/round_history.npy"
 
         if aggregated_parameters is not None:
             net = get_model()
@@ -105,12 +92,12 @@ class Strategy(FedAvg):
 
             print(f"Saving round {server_round} model...")
             torch.save({"model_state_dict": net.state_dict()}, model_path)
+            torch.save({"model_state_dict": net.state_dict()}, round_path)
 
         train_loss = np.array([aggregated_metrics["train_loss"]])
         save_history(
-            previous_history_path=previous_history_path,
             history_path=history_path,
-            batched_train_loss=train_loss,
+            train_loss=train_loss,
         )
 
         return aggregated_parameters, aggregated_metrics
@@ -126,17 +113,17 @@ class Strategy(FedAvg):
             server_round, results, failures
         )
 
-        _, previous_history_path, history_path = get_history_paths(server_round)
+        model_dir = "model"
+        history_path = f"{model_dir}/round_history.npy"
 
         benign_test_loss = np.array([aggregated_metrics["benign_test_loss"]])
         anomalous_test_loss = np.array([aggregated_metrics["anomalous_test_loss"]])
         auc = np.array([aggregated_metrics["auc"]])
         save_history(
-            previous_history_path=previous_history_path,
             history_path=history_path,
-            batched_benign_test_loss=benign_test_loss,
-            batched_anomalous_test_loss=anomalous_test_loss,
-            batched_auc=auc,
+            benign_test_loss=benign_test_loss,
+            anomalous_test_loss=anomalous_test_loss,
+            auc=auc,
         )
 
         # Return aggregated loss and metrics (i.e., aggregated accuracy)

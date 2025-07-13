@@ -1,5 +1,4 @@
 import os
-from glob import glob
 
 import numpy as np
 import torch
@@ -18,24 +17,18 @@ def train_loop(
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer,
     device: str = "cpu",
-    mode: str = "train",  # "test" mode allows calculating loss based on training data
     verbose=True,
 ):
     num_batches = len(dataloader)
     losses = []
 
-    if mode == "train":
-        # turn into train mode
-        model.train()
-    else:
-        model.eval()
+    model.train()
     for batch, x in enumerate(dataloader):
         # copy to gpu
         x = x.to(device)
 
-        if mode == "train":
-            # reset gradients
-            optimizer.zero_grad()
+        # reset gradients
+        optimizer.zero_grad()
 
         # feed forward
         pred = model(x)
@@ -48,10 +41,9 @@ def train_loop(
 
         loss = loss.mean()  # scalar
 
-        if mode == "train":
-            # backpropagation
-            loss.backward()
-            optimizer.step()
+        # backpropagation
+        loss.backward()
+        optimizer.step()
 
         if (batch + 1) % 100 == num_batches % 100:
             verbose_print(
@@ -62,20 +54,19 @@ def train_loop(
 
 
 def test_loop(
-    benign_dataloader: DataLoader,
-    anomalous_dataloader: DataLoader,
+    dataloader: DataLoader,
     model: nn.Module,
     loss_fn: nn.Module,
     device: str = "cpu",
     verbose=True,
 ):
-    benign_loss = []
-    anomalous_loss = []
+    num_batches = len(dataloader)
+    losses = []
 
     # turn into test mode
     model.eval()
     with torch.no_grad():  # temporarily disable auto gradient
-        for batch, x in enumerate(benign_dataloader):
+        for batch, x in enumerate(dataloader):
             x = x.to(device)
 
             # test
@@ -83,45 +74,15 @@ def test_loop(
             loss = loss_fn(pred, x)  # shape: (batch_size, input_dim)
             loss = loss.mean(dim=1)  # shape: (batch_size)
 
-            benign_loss.append(loss.cpu().numpy())
+            losses.append(loss.cpu().numpy())
 
-            if (batch + 1) % 100 == len(benign_dataloader) % 100:
+            if (batch + 1) % 100 == num_batches % 100:
                 verbose_print(
                     verbose,
-                    f"[{batch + 1:>3d}/{len(benign_dataloader):>3d}] loss: {loss.mean().item():>7f}",
+                    f"[{batch + 1:>3d}/{num_batches:>3d}] loss: {loss.mean().item():>7f}",
                 )
 
-        verbose_print(verbose)
-
-        for batch, x in enumerate(anomalous_dataloader):
-            x = x.to(device)
-
-            # test
-            pred = model(x)
-            loss = loss_fn(pred, x)  # shape: (batch_size, input_dim)
-            loss = loss.mean(dim=1)  # shape: (batch_size)
-
-            anomalous_loss.append(loss.cpu().numpy())
-            if (batch + 1) % 100 == len(anomalous_dataloader) % 100:
-                verbose_print(
-                    verbose,
-                    f"[{batch + 1:>3d}/{len(anomalous_dataloader):>3d}] loss: {loss.mean().item():>7f}",
-                )
-
-    benign_loss = np.concat(benign_loss)
-    anomalous_loss = np.concat(anomalous_loss)
-
-    y_score = np.concat(
-        (benign_loss, anomalous_loss),
-        axis=0,
-    )
-    y_true = np.concat(
-        (np.zeros_like(benign_loss), np.ones_like(anomalous_loss)),
-        axis=0,
-    )
-    auc = roc_auc_score(y_true, y_score)
-
-    return benign_loss, anomalous_loss, auc
+    return np.concat(losses)
 
 
 def get_model(model_type="ae"):
@@ -208,123 +169,140 @@ def fit_model(
     anomalous_test_loader: DataLoader = None,
     model_name: str = None,
     epochs=1,
-    mode="train_test",  # "test_only" mode allows calculating loss based on training data
     verbose=False,
 ):
-    train_losses = np.zeros(epochs)
-    benign_test_losses = np.zeros(epochs)
-    anomalous_test_losses = np.zeros(epochs)
-    auc = np.zeros(epochs)
+    model_dir = "model"
+    model_path = f"{model_dir}/{model_name}_model.pth"
+    history_path = f"{model_dir}/{model_name}_history.npy"
 
-    # Fallback arrays
-    train_loss = np.zeros(1)
-    benign_test_loss = np.zeros(1)
-    anomalous_test_loss = np.zeros(1)
+    # default value
+    train_loss = -1
+    benign_test_loss = -1
+    anomalous_test_loss = -1
+    auc = -1
 
     verbose_print(verbose, "Fitting model...\n")
     for i in range(epochs):
-        verbose_print(verbose, f"Epoch: {current_epoch + i + 1}")
+        epoch = current_epoch + i
+        verbose_print(verbose, f"Epoch: {epoch + 1}")
+
         if train_loader is not None:
-            train_loss = train_loop(
+            train_losses = train_loop(
                 dataloader=train_loader,
                 model=model,
                 loss_fn=loss_fn,
                 optimizer=optimizer,
                 device=device,
-                mode="train" if mode == "train_test" else "test",
                 verbose=verbose,
             )
+            train_loss = np.mean(train_losses)
             verbose_print(verbose)
 
-        if benign_test_loader is not None and anomalous_test_loader is not None:
-            benign_test_loss, anomalous_test_loss, auc[i] = test_loop(
-                benign_dataloader=benign_test_loader,
-                anomalous_dataloader=anomalous_test_loader,
+        if benign_test_loader is not None:
+            benign_test_losses = test_loop(
+                dataloader=benign_test_loader,
                 model=model,
                 loss_fn=loss_fn,
                 device=device,
                 verbose=verbose,
             )
+            benign_test_loss = np.mean(benign_test_losses)
             verbose_print(verbose)
 
-        train_losses[i] = np.mean(train_loss)
-        benign_test_losses[i] = np.mean(benign_test_loss)
-        anomalous_test_losses[i] = np.mean(anomalous_test_loss)
+        if anomalous_test_loader is not None:
+            anomalous_test_losses = test_loop(
+                dataloader=anomalous_test_loader,
+                model=model,
+                loss_fn=loss_fn,
+                device=device,
+                verbose=verbose,
+            )
+            anomalous_test_loss = np.mean(anomalous_test_losses)
+            verbose_print(verbose)
 
-        verbose_print(verbose, f"Train Loss          : {train_losses[i]:>8f}")
-        verbose_print(verbose, f"Benign Test Loss    : {benign_test_losses[i]:>8f}")
-        verbose_print(verbose, f"Anomalous Test Loss : {anomalous_test_losses[i]:>8f}")
-        verbose_print(verbose, f"AUC                 : {auc[i]:>8f}")
+        if train_loader is not None:
+            verbose_print(verbose, f"Train Loss          : {train_loss:>8f}")
+        if benign_test_loader is not None:
+            verbose_print(verbose, f"Benign Test Loss    : {benign_test_loss:>8f}")
+        if anomalous_test_loader is not None:
+            verbose_print(verbose, f"Anomalous Test Loss : {anomalous_test_loss:>8f}")
+
+        # calculating auc
+        if benign_test_loader is not None and anomalous_test_loader is not None:
+            y_score = np.concat(
+                (
+                    benign_test_losses,
+                    anomalous_test_losses,
+                ),
+                axis=0,
+            )
+            y_true = np.concat(
+                (
+                    np.zeros_like(benign_test_losses),
+                    np.ones_like(anomalous_test_losses),
+                ),
+                axis=0,
+            )
+            auc = roc_auc_score(y_true, y_score)
+            verbose_print(verbose, f"AUC                 : {auc:>8f}")
         verbose_print(verbose)
 
-    if model_name is not None:
-        model_dir = "model"
-        model_path = f"{model_dir}/{model_name}_model.pth"
-        history_path = f"{model_dir}/{model_name}_history.npy"
-
-        if mode == "train_test":
-            if not os.path.exists(model_path):
-                for file in glob(f"{model_dir}/{model_name}*"):
-                    os.remove(file)
-
-            verbose_print(verbose, "Saving model...")
+        if model_name is not None and train_loader is not None:
+            epoch_path = f"{model_dir}/{model_name}_model_{epoch + 1}.pth"
             torch.save(
                 {
-                    "epoch": current_epoch + epochs,
+                    "epoch": epoch,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                 },
-                model_path,
+                epoch_path,
             )
-
             save_history(
                 history_path,
-                history_path,
-                train_losses,
-                benign_test_losses,
-                anomalous_test_losses,
-                auc,
-                train_loss,
-                benign_test_loss,
-                anomalous_test_loss,
-            )
-        else:
-            # no saving history if this is test mode
-            save_history(
-                history_path,
-                history_path,
-                last_epoch_train_loss=train_loss,
-                last_epoch_benign_test_loss=benign_test_loss,
-                last_epoch_anomalous_test_loss=anomalous_test_loss,
+                np.array([train_loss]),
+                np.array([benign_test_loss]),
+                np.array([anomalous_test_loss]),
+                np.array([auc]),
             )
 
-    return train_losses[-1], benign_test_losses[-1], anomalous_test_losses[-1], auc[-1]
+    if model_name is not None and train_loader is not None:
+        torch.save(
+            {
+                "epoch": current_epoch + epochs,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+            },
+            model_path,
+        )
+
+    return (
+        float(train_loss),
+        float(benign_test_loss),
+        float(anomalous_test_loss),
+        float(auc),
+    )
 
 
 def save_history(
-    previous_history_path: str,
     history_path: str,
-    batched_train_loss: np.ndarray = -np.ones(1),
-    batched_benign_test_loss: np.ndarray = -np.ones(1),
-    batched_anomalous_test_loss: np.ndarray = -np.ones(1),
-    batched_auc: np.ndarray = -np.ones(1),
-    last_epoch_train_loss: np.ndarray = -np.ones(1),
-    last_epoch_benign_test_loss: np.ndarray = -np.ones(1),
-    last_epoch_anomalous_test_loss: np.ndarray = -np.ones(1),
+    train_loss: np.ndarray = -np.ones(1),
+    benign_test_loss: np.ndarray = -np.ones(1),
+    anomalous_test_loss: np.ndarray = -np.ones(1),
+    auc: np.ndarray = -np.ones(1),
 ):
     history = [
-        batched_train_loss,
-        batched_benign_test_loss,
-        batched_anomalous_test_loss,
-        batched_auc,
+        train_loss,
+        benign_test_loss,
+        anomalous_test_loss,
+        auc,
     ]
 
     previous_history = []
     for i in range(len(history)):
         previous_history.append(-np.ones(1))
 
-    if os.path.exists(previous_history_path):
-        with open(previous_history_path, "rb") as f:
+    if os.path.exists(history_path):
+        with open(history_path, "rb") as f:
             # Retrieve history
             for i in range(len(previous_history)):
                 previous_history[i] = np.load(f)
@@ -339,8 +317,3 @@ def save_history(
                 np.save(f, previous_history[i])
             else:
                 np.save(f, np.concat((previous_history[i], history[i]), axis=0))
-
-        # Save the most updated losses
-        np.save(f, last_epoch_train_loss)
-        np.save(f, last_epoch_benign_test_loss)
-        np.save(f, last_epoch_anomalous_test_loss)

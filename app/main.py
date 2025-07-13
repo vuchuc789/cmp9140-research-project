@@ -30,6 +30,7 @@ def main():
     )
     data_parser.add_argument(
         "--anomaly-ratio",
+        default="0.2",
         help="anomaly ratio",
     )
     data_parser.add_argument(
@@ -39,6 +40,7 @@ def main():
     )
     data_parser.add_argument(
         "--analyze-file",
+        default="data/Benign.parquet.zst",
         help="path to data file",
     )
     data_parser.set_defaults(func=lambda args: data_command(data_parser, args))
@@ -56,6 +58,7 @@ def main():
     )
     train_parser.add_argument(
         "--epochs",
+        default="5",
         help="number of epochs",
     )
     train_parser.add_argument(
@@ -78,18 +81,11 @@ def data_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> N
 
     if args.downsample:
         print_help = False
-
-        if args.anomaly_ratio is not None:
-            downsample(float(args.anomaly_ratio))
-        else:
-            downsample()
+        downsample(float(args.anomaly_ratio))
 
     if args.analyze:
         print_help = False
-        if args.analyze_file is not None:
-            analyze(args.analyze_file)
-        else:
-            analyze()
+        analyze(args.analyze_file)
 
     if print_help:
         parser.print_help()
@@ -101,15 +97,12 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     if args.centralized:
         print_help = False
         config = init_model(model_name=args.model_name, verbose=True)
-        if args.epochs:
-            fit_model(
-                *config,
-                epochs=int(args.epochs),
-                model_name=args.model_name,
-                verbose=True,
-            )
-        else:
-            fit_model(*config, model_name=args.model_name, verbose=True)
+        fit_model(
+            *config,
+            epochs=int(args.epochs),
+            model_name=args.model_name,
+            verbose=True,
+        )
 
     if args.evaluate:
         print_help = False
