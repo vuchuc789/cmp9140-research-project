@@ -1,10 +1,13 @@
+import os
 from typing import Optional, Union
 
 import numpy as np
 import torch
 from flwr.common import (
     Context,
+    EvaluateRes,
     FitRes,
+    Metrics,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
@@ -14,8 +17,67 @@ from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy import FedAvg
 
-from app.model.train import get_model
+from app.model.train import get_model, save_history
 from app.utils.model import get_parameters, set_parameters
+
+
+def aggregate_fit_metrics(
+    client_metrics: list[tuple[int, dict[str, Metrics]]],
+) -> Metrics:
+    train_loss = 0
+    num_train = 0
+
+    for num, metrics in client_metrics:
+        train_loss += metrics["train_loss"] * num
+        num_train += num
+
+    train_loss /= num_train
+
+    return {"train_loss": train_loss}
+
+
+def aggregate_evaluate_metrics(
+    client_metrics: list[tuple[int, dict[str, Metrics]]],
+) -> Metrics:
+    benign_test_loss = 0
+    anomalous_test_loss = 0
+    auc = 0
+    num_benign_test = 0
+    num_anomalous_test = 0
+
+    for num, metrics in client_metrics:
+        benign_test_loss += metrics["benign_test_loss"] * metrics["num_benign_test"]
+        anomalous_test_loss += (
+            metrics["anomalous_test_loss"] * metrics["num_anomalous_test"]
+        )
+        auc += metrics["auc"] * (
+            metrics["num_benign_test"] + metrics["num_anomalous_test"]
+        )
+        num_benign_test += metrics["num_benign_test"]
+        num_anomalous_test += metrics["num_anomalous_test"]
+
+    benign_test_loss /= num_benign_test
+    anomalous_test_loss /= num_anomalous_test
+    auc /= num_benign_test + num_anomalous_test
+
+    return {
+        "benign_test_loss": benign_test_loss,
+        "anomalous_test_loss": anomalous_test_loss,
+        "auc": auc,
+    }
+
+
+def get_history_paths(server_round: int):
+    model_dir = "model"
+    model_path = f"{model_dir}/round_{server_round}_model.pth"
+    history_path = f"{model_dir}/round_{server_round}_history.npy"
+    previous_history_path = (
+        history_path
+        if os.path.exists(history_path)
+        else f"{model_dir}/round_{server_round - 1}_history.npy"
+    )
+
+    return model_path, previous_history_path, history_path
 
 
 class Strategy(FedAvg):
@@ -30,10 +92,11 @@ class Strategy(FedAvg):
             server_round, results, failures
         )
 
-        if aggregated_parameters is not None:
-            model_dir = "model"
-            model_path = f"{model_dir}/round_{server_round}_model.pth"
+        model_path, previous_history_path, history_path = get_history_paths(
+            server_round
+        )
 
+        if aggregated_parameters is not None:
             net = get_model()
             aggregated_ndarrays: list[np.ndarray] = parameters_to_ndarrays(
                 aggregated_parameters
@@ -43,7 +106,41 @@ class Strategy(FedAvg):
             print(f"Saving round {server_round} model...")
             torch.save({"model_state_dict": net.state_dict()}, model_path)
 
+        train_loss = np.array([aggregated_metrics["train_loss"]])
+        save_history(
+            previous_history_path=previous_history_path,
+            history_path=history_path,
+            batched_train_loss=train_loss,
+        )
+
         return aggregated_parameters, aggregated_metrics
+
+    def aggregate_evaluate(
+        self,
+        server_round: int,
+        results: list[tuple[ClientProxy, EvaluateRes]],
+        failures: list[Union[tuple[ClientProxy, FitRes], BaseException]],
+    ) -> tuple[Optional[float], dict[str, Scalar]]:
+        # Call aggregate_evaluate from base class (FedAvg) to aggregate loss and metrics
+        aggregated_loss, aggregated_metrics = super().aggregate_evaluate(
+            server_round, results, failures
+        )
+
+        _, previous_history_path, history_path = get_history_paths(server_round)
+
+        benign_test_loss = np.array([aggregated_metrics["benign_test_loss"]])
+        anomalous_test_loss = np.array([aggregated_metrics["anomalous_test_loss"]])
+        auc = np.array([aggregated_metrics["auc"]])
+        save_history(
+            previous_history_path=previous_history_path,
+            history_path=history_path,
+            batched_benign_test_loss=benign_test_loss,
+            batched_anomalous_test_loss=anomalous_test_loss,
+            batched_auc=auc,
+        )
+
+        # Return aggregated loss and metrics (i.e., aggregated accuracy)
+        return aggregated_loss, aggregated_metrics
 
 
 def server_fn(context: Context):
@@ -62,6 +159,8 @@ def server_fn(context: Context):
         fraction_evaluate=1.0,
         min_available_clients=2,
         initial_parameters=parameters,
+        fit_metrics_aggregation_fn=aggregate_fit_metrics,
+        evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
     )
     config = ServerConfig(num_rounds=num_rounds)
 

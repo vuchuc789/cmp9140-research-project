@@ -8,6 +8,8 @@ from sklearn.metrics import (
     roc_curve,
 )
 
+from app.model.train import fit_model, init_model
+
 
 def evaluate(
     model_name: str,
@@ -24,6 +26,23 @@ def evaluate(
         train_loss = np.load(f)
         benign_loss = np.load(f)
         anomalous_loss = np.load(f)
+
+    if (
+        np.array_equal(train_loss, -np.ones(1))
+        or np.array_equal(benign_loss, -np.ones(1))
+        or np.array_equal(anomalous_loss, -np.ones(1))
+    ):
+        config = init_model(model_name=model_name)
+        fit_model(*config, model_name=model_name, mode="test_only")
+
+        with open(history_path, "rb") as f:
+            batched_train_loss = np.load(f)
+            batched_benign_test_loss = np.load(f)
+            batched_anomalous_test_loss = np.load(f)
+            batched_auc = np.load(f)
+            train_loss = np.load(f)
+            benign_loss = np.load(f)
+            anomalous_loss = np.load(f)
 
     print("Calculating metrics...\n")
     train_loss_mean = np.mean(train_loss)

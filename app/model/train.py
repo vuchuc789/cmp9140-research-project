@@ -18,19 +18,24 @@ def train_loop(
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer,
     device: str = "cpu",
+    mode: str = "train",  # "test" mode allows calculating loss based on training data
     verbose=True,
 ):
     num_batches = len(dataloader)
     losses = []
 
-    # turn into train mode
-    model.train()
+    if mode == "train":
+        # turn into train mode
+        model.train()
+    else:
+        model.eval()
     for batch, x in enumerate(dataloader):
         # copy to gpu
         x = x.to(device)
 
-        # reset gradients
-        optimizer.zero_grad()
+        if mode == "train":
+            # reset gradients
+            optimizer.zero_grad()
 
         # feed forward
         pred = model(x)
@@ -43,9 +48,10 @@ def train_loop(
 
         loss = loss.mean()  # scalar
 
-        # backpropagation
-        loss.backward()
-        optimizer.step()
+        if mode == "train":
+            # backpropagation
+            loss.backward()
+            optimizer.step()
 
         if (batch + 1) % 100 == num_batches % 100:
             verbose_print(
@@ -202,17 +208,9 @@ def fit_model(
     anomalous_test_loader: DataLoader = None,
     model_name: str = None,
     epochs=1,
+    mode="train_test",  # "test_only" mode allows calculating loss based on training data
     verbose=False,
 ):
-    if model_name is not None:
-        model_dir = "model"
-        model_path = f"{model_dir}/{model_name}_model.pth"
-        history_path = f"{model_dir}/{model_name}_history.npy"
-
-        if not os.path.exists(model_path):
-            for file in glob(f"{model_dir}/{model_name}*"):
-                os.remove(file)
-
     train_losses = np.zeros(epochs)
     benign_test_losses = np.zeros(epochs)
     anomalous_test_losses = np.zeros(epochs)
@@ -233,6 +231,7 @@ def fit_model(
                 loss_fn=loss_fn,
                 optimizer=optimizer,
                 device=device,
+                mode="train" if mode == "train_test" else "test",
                 verbose=verbose,
             )
             verbose_print(verbose)
@@ -259,56 +258,89 @@ def fit_model(
         verbose_print(verbose)
 
     if model_name is not None:
-        verbose_print(verbose, "Saving model...")
-        torch.save(
-            {
-                "epoch": current_epoch + epochs,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-            },
-            model_path,
-        )
+        model_dir = "model"
+        model_path = f"{model_dir}/{model_name}_model.pth"
+        history_path = f"{model_dir}/{model_name}_history.npy"
 
-        train_history = None
-        benign_test_history = None
-        anomalous_test_history = None
-        auc_history = None
-        if os.path.exists(history_path):
-            with open(history_path, "rb") as f:
-                # Retrieve history
-                train_history = np.load(f)
-                benign_test_history = np.load(f)
-                anomalous_test_history = np.load(f)
-                auc_history = np.load(f)
+        if mode == "train_test":
+            if not os.path.exists(model_path):
+                for file in glob(f"{model_dir}/{model_name}*"):
+                    os.remove(file)
 
-        # Write order is matter
-        with open(history_path, "wb") as f:
-            # Append results to the history
-            np.save(
-                f,
-                train_losses
-                if train_history is None
-                else np.concat((train_history, train_losses), axis=0),
+            verbose_print(verbose, "Saving model...")
+            torch.save(
+                {
+                    "epoch": current_epoch + epochs,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                },
+                model_path,
             )
-            np.save(
-                f,
-                benign_test_losses
-                if benign_test_history is None
-                else np.concat((benign_test_history, benign_test_losses), axis=0),
-            )
-            np.save(
-                f,
-                anomalous_test_losses
-                if anomalous_test_history is None
-                else np.concat((anomalous_test_history, anomalous_test_losses), axis=0),
-            )
-            np.save(
-                f,
-                auc if auc_history is None else np.concat((auc_history, auc), axis=0),
-            )
-            # Save the most updated losses
-            np.save(f, train_loss)
-            np.save(f, benign_test_loss)
-            np.save(f, anomalous_test_loss)
 
-    return train_losses[-1], benign_test_losses[-1], anomalous_test_losses[-1]
+            save_history(
+                history_path,
+                history_path,
+                train_losses,
+                benign_test_losses,
+                anomalous_test_losses,
+                auc,
+                train_loss,
+                benign_test_loss,
+                anomalous_test_loss,
+            )
+        else:
+            # no saving history if this is test mode
+            save_history(
+                history_path,
+                history_path,
+                last_epoch_train_loss=train_loss,
+                last_epoch_benign_test_loss=benign_test_loss,
+                last_epoch_anomalous_test_loss=anomalous_test_loss,
+            )
+
+    return train_losses[-1], benign_test_losses[-1], anomalous_test_losses[-1], auc[-1]
+
+
+def save_history(
+    previous_history_path: str,
+    history_path: str,
+    batched_train_loss: np.ndarray = -np.ones(1),
+    batched_benign_test_loss: np.ndarray = -np.ones(1),
+    batched_anomalous_test_loss: np.ndarray = -np.ones(1),
+    batched_auc: np.ndarray = -np.ones(1),
+    last_epoch_train_loss: np.ndarray = -np.ones(1),
+    last_epoch_benign_test_loss: np.ndarray = -np.ones(1),
+    last_epoch_anomalous_test_loss: np.ndarray = -np.ones(1),
+):
+    history = [
+        batched_train_loss,
+        batched_benign_test_loss,
+        batched_anomalous_test_loss,
+        batched_auc,
+    ]
+
+    previous_history = []
+    for i in range(len(history)):
+        previous_history.append(-np.ones(1))
+
+    if os.path.exists(previous_history_path):
+        with open(previous_history_path, "rb") as f:
+            # Retrieve history
+            for i in range(len(previous_history)):
+                previous_history[i] = np.load(f)
+
+    # Write order is matter
+    with open(history_path, "wb") as f:
+        # Append results to the history
+        for i in range(len(history)):
+            if np.array_equal(previous_history[i], -np.ones(1)):
+                np.save(f, history[i])
+            elif np.array_equal(history[i], -np.ones(1)):
+                np.save(f, previous_history[i])
+            else:
+                np.save(f, np.concat((previous_history[i], history[i]), axis=0))
+
+        # Save the most updated losses
+        np.save(f, last_epoch_train_loss)
+        np.save(f, last_epoch_benign_test_loss)
+        np.save(f, last_epoch_anomalous_test_loss)

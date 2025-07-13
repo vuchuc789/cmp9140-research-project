@@ -31,7 +31,7 @@ class FlowerClient(NumPyClient):
 
     def fit(self, parameters, config):
         set_parameters(self.net, parameters)
-        train_loss, _, _ = fit_model(
+        train_loss, *_ = fit_model(
             model=self.net,
             loss_fn=self.loss_fn,
             optimizer=self.optimizer,
@@ -42,12 +42,12 @@ class FlowerClient(NumPyClient):
         return (
             get_parameters(self.net),
             len(self.train_loader.dataset),
-            {"train_loss": train_loss},
+            {"train_loss": float(train_loss)},
         )
 
     def evaluate(self, parameters, config):
         set_parameters(self.net, parameters)
-        _, benign_loss, anomalous_loss = fit_model(
+        _, benign_loss, anomalous_loss, auc = fit_model(
             model=self.net,
             loss_fn=self.loss_fn,
             device=self.device,
@@ -58,7 +58,13 @@ class FlowerClient(NumPyClient):
             benign_loss,
             len(self.benign_test_loader.dataset)
             + len(self.anomalous_test_loader.dataset),
-            {"anomalous_loss": anomalous_loss},
+            {
+                "benign_test_loss": float(benign_loss),
+                "anomalous_test_loss": float(anomalous_loss),
+                "auc": float(auc),
+                "num_benign_test": len(self.benign_test_loader.dataset),
+                "num_anomalous_test": len(self.anomalous_test_loader.dataset),
+            },
         )
 
 
