@@ -18,25 +18,24 @@ class Autoencoder(nn.Module):
         super().__init__()
 
         self.encoder = nn.Sequential(
-            # nn.Dropout(0.1),
             nn.Linear(79, 64),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.2),
             nn.Linear(64, 32),
             nn.ReLU(),
-            # nn.Dropout(0.3),  # let the latent space receive all information
+            nn.Dropout(0.2),
             nn.Linear(32, 16),
             nn.ReLU(),
         )
 
         self.decoder = nn.Sequential(
-            nn.Dropout(0.3),
+            nn.Dropout(0.2),
             nn.Linear(16, 32),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.2),
             nn.Linear(32, 64),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.2),
             nn.Linear(64, 79),
             nn.Sigmoid(),
         )
