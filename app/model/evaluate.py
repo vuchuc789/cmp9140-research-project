@@ -133,7 +133,7 @@ def evaluate(
         linestyle=":",
     )
 
-    ax1.set_xlabel("Epoch", fontsize=12)
+    ax1.set_xlabel("Epoch or Round", fontsize=12)
     ax1.set_ylabel("Loss (MSE)", fontsize=12)
     ax1.grid(True, linestyle="--", alpha=0.5)
 

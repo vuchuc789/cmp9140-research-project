@@ -79,9 +79,9 @@ class Strategy(FedAvg):
         )
 
         model_dir = "model"
-        model_path = f"{model_dir}/round_model.pth"
-        round_path = f"{model_dir}/round_{server_round}_model.pth"
-        history_path = f"{model_dir}/round_history.npy"
+        model_path = f"{model_dir}/distributed_model.pth"
+        round_path = f"{model_dir}/distributed_model_{server_round}.pth"
+        history_path = f"{model_dir}/distributed_history.npy"
 
         if aggregated_parameters is not None:
             net = get_model()
@@ -114,7 +114,7 @@ class Strategy(FedAvg):
         )
 
         model_dir = "model"
-        history_path = f"{model_dir}/round_history.npy"
+        history_path = f"{model_dir}/distributed_history.npy"
 
         benign_test_loss = np.array([aggregated_metrics["benign_test_loss"]])
         anomalous_test_loss = np.array([aggregated_metrics["anomalous_test_loss"]])

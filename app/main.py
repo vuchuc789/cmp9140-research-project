@@ -53,7 +53,7 @@ def main():
     )
     train_parser.add_argument(
         "--model-name",
-        default="model",
+        default="centralized",
         help="model name",
     )
     train_parser.add_argument(
