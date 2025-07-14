@@ -83,7 +83,10 @@ def client_fn(context: Context):
         train_loader,
         benign_test_loader,
         anomalous_test_loader,
-    ) = init_model(partition=f"iid_{num_partitions}", partition_id=partition_id)
+    ) = init_model(
+        partition=f"iid_{num_partitions}",
+        partition_id=partition_id,
+    )
 
     # Return Client instance
     return FlowerClient(

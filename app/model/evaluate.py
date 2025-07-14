@@ -24,17 +24,24 @@ def evaluate(
         batched_anomalous_test_loss = np.load(f)
         batched_auc = np.load(f)
 
-    print("Calculating loss...\n")
     (
         model,
         loss_fn,
-        *_,
+        optimizer,
+        batch_size,
         device,
         train_loader,
         benign_test_loader,
         anomalous_test_loader,
     ) = init_model(model_name)
 
+    print("Model information:\n")
+    print(model)
+    print()
+    print(optimizer)
+    print()
+
+    print("Calculating loss...\n")
     train_loss = test_loop(train_loader, model, loss_fn, device)
     print()
     benign_loss = test_loop(benign_test_loader, model, loss_fn, device)
@@ -69,6 +76,7 @@ def evaluate(
         accuracy[i] = np.mean(y_pred == y_true)
         if (i + 1) % 1000 == len(thresholds) % 1000:
             print(f"[{i + 1:>4d}/{len(thresholds):>4d}] accuracy: {accuracy[i]:>7f}")
+    print()
 
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
