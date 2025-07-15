@@ -10,6 +10,7 @@ from flwr_datasets.partitioner import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.utils import shuffle
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -74,6 +75,9 @@ class DDoSDataset(Dataset):
         # Simulate non-iid data
         self.partitioner = None
         if partition != "none":
+            # Shuffle before partitioning
+            df = shuffle(df, random_state=0)
+
             partition = partition.split("_")
 
             match partition[0]:
@@ -84,7 +88,8 @@ class DDoSDataset(Dataset):
                         num_partitions=int(partition[1]),
                         partition_by="Source IP",
                         alpha=float(partition[2]),
-                        min_partition_size=64,  # 1 batch
+                        min_partition_size=10,
+                        self_balancing=True,
                     )
                 case "natural":
                     self.partitioner = GroupedNaturalIdPartitioner(
@@ -105,6 +110,8 @@ class DDoSDataset(Dataset):
                 inplace=True,
             )
 
+        # Save for analysis
+        self.partition_ids = df["Source IP"]
         # No longer need partition ids
         df.drop(columns=["Source IP"], inplace=True)
 
@@ -132,7 +139,7 @@ def load_data(batch_size: int, partition="none", partition_id=0):
         split="train",
         partition=partition,
         partition_id=partition_id,
-        save_normalization=True,
+        save_normalization=(partition == "none"),
         transform=torch.from_numpy,
     )
     benign_data_test = DDoSDataset(
