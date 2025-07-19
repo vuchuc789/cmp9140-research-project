@@ -73,6 +73,7 @@ def client_fn(context: Context):
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
     local_epochs = context.run_config["local-epochs"]
+    partition_strategy = context.run_config["partition-strategy"]
 
     (
         net,
@@ -84,7 +85,7 @@ def client_fn(context: Context):
         benign_test_loader,
         anomalous_test_loader,
     ) = init_model(
-        partition=f"iid_{num_partitions}",
+        partition=f"{partition_strategy}_{num_partitions}",
         partition_id=partition_id,
     )
 

@@ -1,3 +1,5 @@
+import os
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -78,23 +80,25 @@ class DDoSDataset(Dataset):
             # Shuffle before partitioning
             df = shuffle(df, random_state=0)
 
-            partition = partition.split("_")
+            partition_conf = partition.split("_")
 
-            match partition[0]:
+            match partition_conf[0]:
                 case "iid":
-                    self.partitioner = IidPartitioner(num_partitions=int(partition[1]))
+                    self.partitioner = IidPartitioner(
+                        num_partitions=int(partition_conf[1])
+                    )
                 case "dirichlet":
                     self.partitioner = DirichletPartitioner(
-                        num_partitions=int(partition[1]),
+                        num_partitions=int(partition_conf[2]),
                         partition_by="Source IP",
-                        alpha=float(partition[2]),
+                        alpha=float(partition_conf[1]),
                         min_partition_size=10,
                         self_balancing=True,
                     )
                 case "natural":
                     self.partitioner = GroupedNaturalIdPartitioner(
                         partition_by="Source IP",
-                        group_size=int(partition[1]),
+                        group_size=int(partition_conf[1]),
                     )
 
             original_columns = df.columns
@@ -102,13 +106,24 @@ class DDoSDataset(Dataset):
             dataset = PADatatset.from_pandas(df)
             self.partitioner.dataset = dataset
 
-            # Convert back to pandas dataframe
-            df = self.partitioner.load_partition(partition_id).to_pandas()
-            # Drop surprising columns
-            df.drop(
-                columns=[col for col in df.columns if col not in original_columns],
-                inplace=True,
+            cache_path = (
+                "/".join(data_file.split("/")[:-1])
+                + f"/{partition}_{partition_id}.parquet.zst"
             )
+
+            if os.path.exists(cache_path):
+                # Retrieve cache if it exists
+                df = pd.read_parquet(cache_path)
+            else:
+                # Convert back to pandas dataframe
+                df = self.partitioner.load_partition(partition_id).to_pandas()
+                # Drop surprising columns
+                df.drop(
+                    columns=[col for col in df.columns if col not in original_columns],
+                    inplace=True,
+                )
+                # Save cache
+                df.to_parquet(cache_path, engine="pyarrow", compression="zstd")
 
         # Save for analysis
         self.partition_ids = df["Source IP"]

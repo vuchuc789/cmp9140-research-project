@@ -53,7 +53,7 @@ def view_distribution(partition="none"):
         pivot,
         annot=True,
         fmt="g",
-        cmap="Greens",
+        cmap="Oranges",
         cbar_kws={"label": "Count"},
     )
 
@@ -78,7 +78,7 @@ def view_distribution(partition="none"):
         kind="bar",
         stacked=True,
         figsize=(12, 6),
-        colormap="Greens",  # You can also try 'tab20', 'viridis', etc.
+        colormap="Spectral",  # You can also try 'tab20', 'viridis', etc.
     )
 
     plt.title("Stacked Source IP Distribution per Partition", fontsize=16)
