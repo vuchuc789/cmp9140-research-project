@@ -105,7 +105,11 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
 
     if args.centralized:
         print_help = False
-        config = init_model(model_name=args.model_name, verbose=True)
+        config = init_model(
+            model_name=args.model_name,
+            regularization_rate=5e-4,
+            verbose=True,
+        )
         fit_model(
             *config,
             epochs=int(args.epochs),

@@ -1,5 +1,3 @@
-import os
-
 import joblib
 import numpy as np
 import pandas as pd
@@ -106,24 +104,13 @@ class DDoSDataset(Dataset):
             dataset = PADatatset.from_pandas(df)
             self.partitioner.dataset = dataset
 
-            cache_path = (
-                "/".join(data_file.split("/")[:-1])
-                + f"/{partition}_{partition_id}.parquet.zst"
+            # Convert back to pandas dataframe
+            df = self.partitioner.load_partition(partition_id).to_pandas()
+            # Drop surprising columns
+            df.drop(
+                columns=[col for col in df.columns if col not in original_columns],
+                inplace=True,
             )
-
-            if os.path.exists(cache_path):
-                # Retrieve cache if it exists
-                df = pd.read_parquet(cache_path)
-            else:
-                # Convert back to pandas dataframe
-                df = self.partitioner.load_partition(partition_id).to_pandas()
-                # Drop surprising columns
-                df.drop(
-                    columns=[col for col in df.columns if col not in original_columns],
-                    inplace=True,
-                )
-                # Save cache
-                df.to_parquet(cache_path, engine="pyarrow", compression="zstd")
 
         # Save for analysis
         self.partition_ids = df["Source IP"]
@@ -168,7 +155,7 @@ def load_data(batch_size: int, partition="none", partition_id=0):
     anomalous_data = DDoSDataset(
         "data/Anomalous.parquet.zst",
         split="all",
-        partition=partition,
+        partition=f"iid_{partition.split('_')[-1]}" if partition != "none" else "none",
         partition_id=partition_id,
         save_normalization=False,
         transform=torch.from_numpy,

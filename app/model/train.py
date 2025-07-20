@@ -97,7 +97,7 @@ def init_model(
     loss_type="mae",
     batch_size=64,
     learning_rate=1e-3,
-    regularization_rate=5e-4,
+    regularization_rate=0,
     partition="none",
     partition_id=0,
     verbose=False,
