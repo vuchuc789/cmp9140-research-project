@@ -7,7 +7,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from app.data.data import load_data
-from app.model.model import Autoencoder, init_weights
+from app.model.model import init_weights
+from app.utils.model import get_model, get_optimizer, save_history
 from app.utils.print import verbose_print
 
 
@@ -85,16 +86,11 @@ def test_loop(
     return np.concat(losses)
 
 
-def get_model(model_type="ae"):
-    match model_type:
-        case "ae":
-            return Autoencoder()
-
-
 def init_model(
     model_name: str = None,
     model_type="ae",
     loss_type="mae",
+    optimizer_type="sgd",
     batch_size=64,
     learning_rate=1e-3,
     regularization_rate=0,
@@ -119,19 +115,23 @@ def init_model(
         batch_size, partition, partition_id
     )
 
+    verbose_print(verbose, f"Using model: {model_type}")
+    verbose_print(verbose, f"Using loss function: {loss_type}")
+    verbose_print(verbose, f"Using optimizer: {optimizer_type}\n")
+
     model = get_model(model_type).to(device)
 
     match loss_type:
         case "mae":
             loss_fn = nn.MSELoss(reduction="none")
 
-    optimizer = torch.optim.Adam(
+    optimizer = get_optimizer(optimizer_type)(
         model.parameters(),
         lr=learning_rate,
         weight_decay=regularization_rate,
     )
 
-    current_epoch: int = 0
+    current_epoch: int = -1
     if model_name is not None and os.path.exists(model_path):
         verbose_print(verbose, "Loading checkpoint...\n")
         checkpoint = torch.load(model_path, weights_only=True)
@@ -162,7 +162,7 @@ def fit_model(
     model: nn.Module,
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer = None,
-    current_epoch=0,
+    current_epoch=-1,
     device="cpu",
     train_loader: DataLoader = None,
     benign_test_loader: DataLoader = None,
@@ -183,7 +183,7 @@ def fit_model(
 
     verbose_print(verbose, "Fitting model...\n")
     for i in range(epochs):
-        epoch = current_epoch + i
+        epoch = current_epoch + i + 1
         verbose_print(verbose, f"Epoch: {epoch + 1}")
 
         if train_loader is not None:
@@ -248,15 +248,14 @@ def fit_model(
         verbose_print(verbose)
 
         if model_name is not None and train_loader is not None:
+            model_obj = {
+                "epoch": epoch,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+            }
             epoch_path = f"{model_dir}/{model_name}_model_{epoch + 1}.pth"
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                },
-                epoch_path,
-            )
+            torch.save(model_obj, epoch_path)
+            torch.save(model_obj, model_path)
             save_history(
                 history_path,
                 np.array([train_loss]),
@@ -265,55 +264,9 @@ def fit_model(
                 np.array([auc]),
             )
 
-    if model_name is not None and train_loader is not None:
-        torch.save(
-            {
-                "epoch": current_epoch + epochs,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-            },
-            model_path,
-        )
-
     return (
         float(train_loss),
         float(benign_test_loss),
         float(anomalous_test_loss),
         float(auc),
     )
-
-
-def save_history(
-    history_path: str,
-    train_loss: np.ndarray = -np.ones(1),
-    benign_test_loss: np.ndarray = -np.ones(1),
-    anomalous_test_loss: np.ndarray = -np.ones(1),
-    auc: np.ndarray = -np.ones(1),
-):
-    history = [
-        train_loss,
-        benign_test_loss,
-        anomalous_test_loss,
-        auc,
-    ]
-
-    previous_history = []
-    for i in range(len(history)):
-        previous_history.append(-np.ones(1))
-
-    if os.path.exists(history_path):
-        with open(history_path, "rb") as f:
-            # Retrieve history
-            for i in range(len(previous_history)):
-                previous_history[i] = np.load(f)
-
-    # Write order is matter
-    with open(history_path, "wb") as f:
-        # Append results to the history
-        for i in range(len(history)):
-            if np.array_equal(previous_history[i], -np.ones(1)):
-                np.save(f, history[i])
-            elif np.array_equal(history[i], -np.ones(1)):
-                np.save(f, previous_history[i])
-            else:
-                np.save(f, np.concat((previous_history[i], history[i]), axis=0))

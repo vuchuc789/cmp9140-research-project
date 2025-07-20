@@ -107,6 +107,7 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         print_help = False
         config = init_model(
             model_name=args.model_name,
+            optimizer_type="adam",
             regularization_rate=5e-4,
             verbose=True,
         )

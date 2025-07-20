@@ -98,7 +98,7 @@ clientapp = "app.fed.client_app:app"
 
 [tool.flwr.app.config]
 num-server-rounds = 20
-fraction-fit = 0.5
+fraction-fit = 0.25
 local-epochs = 10
 partition-strategy = "iid"
 
@@ -106,4 +106,4 @@ partition-strategy = "iid"
 default = "local-simulation"
 
 [tool.flwr.federations.local-simulation]
-options.num-supernodes = 10
+options.num-supernodes = 20

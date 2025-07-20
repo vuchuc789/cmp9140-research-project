@@ -35,11 +35,11 @@ def evaluate(
         anomalous_test_loader,
     ) = init_model(model_name)
 
-    print("Model information:\n")
-    print(model)
-    print()
-    print(optimizer)
-    print()
+    # print("Model information:\n")
+    # print(model)
+    # print()
+    # print(optimizer)
+    # print()
 
     print("Calculating loss...\n")
     train_loss = test_loop(train_loader, model, loss_fn, device)
@@ -103,7 +103,7 @@ def evaluate(
     print(f"Std  (σ) of Training Loss (MSE): {train_loss_std:.4f}\n")
 
     print(
-        f"Threshold: {best_threshold:.4f} = μ + σ × {(best_threshold - train_loss_mean) / train_loss_std:.4f} (selected based on F1-score)\n"
+        f"Threshold: {best_threshold:.4f} = μ + σ × {(best_threshold - train_loss_mean) / train_loss_std:.4f} (selected based on max F1-score)\n"
     )
 
     print(f"True Negatives : {tn:>5d}")

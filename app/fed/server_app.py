@@ -16,8 +16,7 @@ from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy import FedAvg
 
-from app.model.train import get_model, save_history
-from app.utils.model import get_parameters, set_parameters
+from app.utils.model import get_model, get_parameters, save_history, set_parameters
 
 
 def aggregate_fit_metrics(
