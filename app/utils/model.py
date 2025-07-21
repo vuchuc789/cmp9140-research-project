@@ -20,6 +20,12 @@ def get_optimizer(
     match optimizer_type:
         case "adam":
             return torch.optim.Adam
+        case "sgdm":
+            return lambda *args, **kwargs: torch.optim.SGD(
+                *args,
+                **kwargs,
+                momentum=0.9,
+            )
         case _:  # sgd
             return torch.optim.SGD
 

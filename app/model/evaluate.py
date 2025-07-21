@@ -33,13 +33,18 @@ def evaluate(
         train_loader,
         benign_test_loader,
         anomalous_test_loader,
-    ) = init_model(model_name)
+    ) = init_model(
+        model_name=model_name,
+        model_type="ae",
+        loss_type="mae",
+        optimizer_type="sgdm",
+    )
 
-    # print("Model information:\n")
-    # print(model)
-    # print()
-    # print(optimizer)
-    # print()
+    print("Model information:\n")
+    print(model)
+    print()
+    print(optimizer)
+    print()
 
     print("Calculating loss...\n")
     train_loss = test_loop(train_loader, model, loss_fn, device)
