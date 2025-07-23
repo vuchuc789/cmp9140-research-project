@@ -166,7 +166,7 @@ def server_fn(context: Context):
     # Define strategy
     strategy = Strategy(
         fraction_fit=fraction_fit,
-        fraction_evaluate=1.0,
+        fraction_evaluate=fraction_fit,
         min_available_clients=2,
         initial_parameters=parameters,
         fit_metrics_aggregation_fn=aggregate_fit_metrics,
