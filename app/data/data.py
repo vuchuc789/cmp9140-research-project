@@ -1,3 +1,6 @@
+import hashlib
+import os
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -99,18 +102,27 @@ class DDoSDataset(Dataset):
                         group_size=int(partition_conf[1]),
                     )
 
-            original_columns = df.columns
             # Flower partitioners use pyarrow datasets
             dataset = PADatatset.from_pandas(df)
             self.partitioner.dataset = dataset
 
-            # Convert back to pandas dataframe
-            df = self.partitioner.load_partition(partition_id).to_pandas()
-            # Drop surprising columns
-            df.drop(
-                columns=[col for col in df.columns if col not in original_columns],
-                inplace=True,
+            cache_path = (
+                f"{'/'.join(data_file.split('/')[:-1])}/"
+                f"cache_{hashlib.sha256(f'{data_file}{partition}{partition_id}'.encode()).hexdigest()}.parquet.zst"
             )
+
+            if not os.path.exists(cache_path):
+                original_columns = df.columns
+                # Convert back to pandas dataframe
+                df = self.partitioner.load_partition(partition_id).to_pandas()
+                # Drop surprising columns
+                df.drop(
+                    columns=[col for col in df.columns if col not in original_columns],
+                    inplace=True,
+                )
+                df.to_parquet(cache_path, engine="pyarrow", compression="zstd")
+            else:
+                df = pd.read_parquet(cache_path)
 
         # Save for analysis
         self.partition_ids = df["Source IP"]

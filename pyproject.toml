@@ -97,7 +97,7 @@ serverapp = "app.fed.server_app:app"
 clientapp = "app.fed.client_app:app"
 
 [tool.flwr.app.config]
-num-server-rounds = 20
+num-server-rounds = 2
 fraction-fit = 0.1
 local-epochs = 10
 partition-strategy = "dirichlet_0.3"

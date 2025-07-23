@@ -131,7 +131,7 @@ def init_model(
         weight_decay=regularization_rate,
     )
 
-    current_epoch: int = -1
+    last_epoch: int = -1
     if model_name is not None and os.path.exists(model_path):
         verbose_print(verbose, "Loading checkpoint...\n")
         checkpoint = torch.load(model_path, weights_only=True)
@@ -141,7 +141,7 @@ def init_model(
             optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
         if "epoch" in checkpoint:
-            current_epoch = checkpoint["epoch"]
+            last_epoch = checkpoint["epoch"]
 
     else:
         model.apply(init_weights)  # apply init weights if no checkpoint
@@ -150,7 +150,7 @@ def init_model(
         model,
         loss_fn,
         optimizer,
-        current_epoch,
+        last_epoch,
         device,
         train_loader,
         benign_test_loader,
@@ -162,7 +162,7 @@ def fit_model(
     model: nn.Module,
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer = None,
-    current_epoch=-1,
+    last_epoch=-1,
     device="cpu",
     train_loader: DataLoader = None,
     benign_test_loader: DataLoader = None,
@@ -183,7 +183,7 @@ def fit_model(
 
     verbose_print(verbose, "Fitting model...\n")
     for i in range(epochs):
-        epoch = current_epoch + i + 1
+        epoch = last_epoch + i + 1
         verbose_print(verbose, f"Epoch: {epoch + 1}")
 
         if train_loader is not None:

@@ -14,8 +14,11 @@ from flwr.common import (
 )
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.client_proxy import ClientProxy
+
+# from flwr.server.strategy import FedProx
 from flwr.server.strategy import FedAvg
 
+from app.model.train import init_model
 from app.utils.model import get_model, get_parameters, save_history, set_parameters
 
 
@@ -66,20 +69,25 @@ def aggregate_evaluate_metrics(
 
 
 class Strategy(FedAvg):
+    # class Strategy(FedProx):
+
+    last_round = 0
+
     def aggregate_fit(
         self,
         server_round: int,
         results: list[tuple[ClientProxy, FitRes]],
         failures: list[Union[tuple[ClientProxy, FitRes], BaseException]],
     ) -> tuple[Optional[Parameters], dict[str, Scalar]]:
-        # Call aggregate_fit from base class (FedAvg) to aggregate parameters and metrics
         aggregated_parameters, aggregated_metrics = super().aggregate_fit(
             server_round, results, failures
         )
 
         model_dir = "model"
         model_path = f"{model_dir}/distributed_model.pth"
-        round_path = f"{model_dir}/distributed_model_{server_round}.pth"
+        round_path = (
+            f"{model_dir}/distributed_model_{self.last_round + server_round}.pth"
+        )
         history_path = f"{model_dir}/distributed_history.npy"
 
         if aggregated_parameters is not None:
@@ -89,9 +97,20 @@ class Strategy(FedAvg):
             )
             set_parameters(net, aggregated_ndarrays)
 
-            # print(f"Saving round {server_round} model...")
-            torch.save({"model_state_dict": net.state_dict()}, model_path)
-            torch.save({"model_state_dict": net.state_dict()}, round_path)
+            torch.save(
+                {
+                    "epoch": self.last_round + server_round,
+                    "model_state_dict": net.state_dict(),
+                },
+                model_path,
+            )
+            torch.save(
+                {
+                    "epoch": self.last_round + server_round,
+                    "model_state_dict": net.state_dict(),
+                },
+                round_path,
+            )
 
         train_loss = np.array([aggregated_metrics["train_loss"]])
         save_history(
@@ -107,7 +126,6 @@ class Strategy(FedAvg):
         results: list[tuple[ClientProxy, EvaluateRes]],
         failures: list[Union[tuple[ClientProxy, FitRes], BaseException]],
     ) -> tuple[Optional[float], dict[str, Scalar]]:
-        # Call aggregate_evaluate from base class (FedAvg) to aggregate loss and metrics
         aggregated_loss, aggregated_metrics = super().aggregate_evaluate(
             server_round, results, failures
         )
@@ -135,7 +153,13 @@ def server_fn(context: Context):
     fraction_fit = context.run_config["fraction-fit"]
 
     # Initialize model parameters
-    net = get_model()
+    (
+        net,
+        _,
+        _,
+        last_round,
+        *_,
+    ) = init_model(model_name="distributed")
     ndarrays = get_parameters(net)
     parameters = ndarrays_to_parameters(ndarrays)
 
@@ -147,7 +171,10 @@ def server_fn(context: Context):
         initial_parameters=parameters,
         fit_metrics_aggregation_fn=aggregate_fit_metrics,
         evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
+        # proximal_mu=0.1,
     )
+    strategy.last_round = last_round if last_round != -1 else 0
+
     config = ServerConfig(num_rounds=num_rounds)
 
     return ServerAppComponents(strategy=strategy, config=config)
