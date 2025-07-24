@@ -28,7 +28,7 @@ def evaluate(
         model,
         loss_fn,
         optimizer,
-        batch_size,
+        last_epoch,
         device,
         train_loader,
         benign_test_loader,
@@ -113,7 +113,8 @@ def evaluate(
 
             window_sum -= diffs[i]
             window_sum += diffs[i + patience]
-        print(f"Best AUC epoch: {np.argmax(batched_auc) + 1}\n")
+        print(f"Best AUC epoch: {np.argmax(batched_auc) + 1}")
+        print(f"Current epoch: {last_epoch + 1}({last_epoch})\n")
 
     print(f"Avg Training Loss (from training history): {batched_train_loss[-1]:>7f}")
     print(

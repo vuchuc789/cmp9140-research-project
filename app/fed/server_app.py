@@ -14,10 +14,9 @@ from flwr.common import (
 )
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.client_proxy import ClientProxy
+from flwr.server.strategy import FedProx
 
-# from flwr.server.strategy import FedProx
-from flwr.server.strategy import FedAvg
-
+# from flwr.server.strategy import FedAvg
 from app.model.train import init_model
 from app.utils.model import get_model, get_parameters, save_history, set_parameters
 
@@ -68,9 +67,8 @@ def aggregate_evaluate_metrics(
     }
 
 
-class Strategy(FedAvg):
-    # class Strategy(FedProx):
-
+# class Strategy(FedAvg):
+class Strategy(FedProx):
     last_round = 0
 
     def aggregate_fit(
@@ -171,7 +169,7 @@ def server_fn(context: Context):
         initial_parameters=parameters,
         fit_metrics_aggregation_fn=aggregate_fit_metrics,
         evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-        # proximal_mu=0.1,
+        proximal_mu=1e-4,
     )
     strategy.last_round = last_round if last_round != -1 else 0
 
