@@ -7,5 +7,8 @@ data/**/*
 !data/MinMaxScaler.gz
 !data/Protocol_OneHotEncoder.gz
 
+model/test*
+model/distributed*
+
 **/.DS_Store
 
