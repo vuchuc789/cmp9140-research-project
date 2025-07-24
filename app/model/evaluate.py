@@ -40,28 +40,6 @@ def evaluate(
         optimizer_type="sgdm",
     )
 
-    print("Model information:\n")
-    print(model)
-    print()
-    print(optimizer)
-    print()
-
-    patience = 10
-    delta = 1e-3
-    if len(batched_benign_test_loss) > patience:
-        diffs = batched_benign_test_loss[:-1] - batched_benign_test_loss[1:]
-        window_sum = np.sum(diffs[:patience])
-        for i in range(len(diffs) - patience):
-            if window_sum >= 0 and window_sum < delta:
-                print(
-                    f"Convergence Epoch (patience={patience}, delta={delta}): {i + 1}"
-                )
-                break
-
-            window_sum -= diffs[i]
-            window_sum += diffs[i + patience]
-        print(f"Best AUC epoch: {np.argmax(batched_auc) + 1}\n")
-
     print("Calculating loss...\n")
     train_loss = test_loop(train_loader, model, loss_fn, device)
     print()
@@ -113,7 +91,29 @@ def evaluate(
 
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
 
+    print("Model information:\n")
+    print(model)
+    print()
+    print(optimizer)
+    print()
+
     print("Showing result...\n")
+
+    patience = 10
+    delta = 1e-3
+    if len(batched_benign_test_loss) > patience:
+        diffs = batched_benign_test_loss[:-1] - batched_benign_test_loss[1:]
+        window_sum = np.sum(diffs[:patience])
+        for i in range(len(diffs) - patience):
+            if window_sum >= 0 and window_sum < delta:
+                print(
+                    f"Convergence Epoch (patience={patience}, delta={delta}): {i + 1}"
+                )
+                break
+
+            window_sum -= diffs[i]
+            window_sum += diffs[i + patience]
+        print(f"Best AUC epoch: {np.argmax(batched_auc) + 1}\n")
 
     print(f"Avg Training Loss (from training history): {batched_train_loss[-1]:>7f}")
     print(
