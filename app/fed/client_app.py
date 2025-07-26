@@ -34,25 +34,25 @@ class FlowerClient(NumPyClient):
     def fit(self, parameters, config):
         set_parameters(self.net, parameters)
 
-        global_params = copy.deepcopy(self.net).parameters()
+        if config["proximal_mu"] > 0:
+            global_params = copy.deepcopy(self.net).parameters()
 
-        def loss_fn(*args, **kwargs):
-            proximal_term = 0
-            for local_weights, global_weights in zip(
-                self.net.parameters(), global_params
-            ):
-                proximal_term += (local_weights - global_weights).norm(2)
+            def loss_fn(*args, **kwargs):
+                proximal_term = 0
+                for local_weights, global_weights in zip(
+                    self.net.parameters(), global_params
+                ):
+                    proximal_term += (local_weights - global_weights).norm(2)
 
-            loss = (
-                self.loss_fn(*args, **kwargs)
-                + (config["proximal_mu"] / 2) * proximal_term
-            )
-            return loss
+                loss = (
+                    self.loss_fn(*args, **kwargs)
+                    + (config["proximal_mu"] / 2) * proximal_term
+                )
+                return loss
 
         train_loss, *_ = fit_model(
             model=self.net,
-            # loss_fn=self.loss_fn,
-            loss_fn=loss_fn,
+            loss_fn=loss_fn if config["proximal_mu"] > 0 else self.loss_fn,
             optimizer=self.optimizer,
             epochs=self.local_epochs,
             device=self.device,

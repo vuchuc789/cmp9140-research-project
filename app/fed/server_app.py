@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Union
 
 import numpy as np
@@ -14,9 +15,8 @@ from flwr.common import (
 )
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.client_proxy import ClientProxy
-from flwr.server.strategy import FedProx
+from flwr.server.strategy import FedAvgM, FedProx
 
-# from flwr.server.strategy import FedAvg
 from app.model.train import init_model
 from app.utils.model import get_model, get_parameters, save_history, set_parameters
 
@@ -67,9 +67,51 @@ def aggregate_evaluate_metrics(
     }
 
 
-# class Strategy(FedAvg):
-class Strategy(FedProx):
-    last_round = 0
+class Strategy(FedProx, FedAvgM):
+    model_dir = "model"
+    model_path = f"{model_dir}/distributed_model.pth"
+    history_path = f"{model_dir}/distributed_history.npy"
+    optimizer_path = f"{model_dir}/distributed_optimizer.npy"
+
+    def __init__(
+        self,
+        last_round: int = 0,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.last_round = last_round
+
+        if os.path.exists(self.optimizer_path) and (
+            (hasattr(self, "m_t") and hasattr(self, "v_t"))
+            or hasattr(self, "momentum_vector")
+        ):
+            ts = []
+
+            with open(self.optimizer_path, "rb") as f:
+                while True:
+                    try:
+                        ts.append(np.load(f))
+                    except EOFError:
+                        break
+
+            if hasattr(self, "m_t") and hasattr(self, "v_t"):
+                self.m_t = ts[: len(ts) // 2]
+                self.v_t = ts[len(ts) // 2 :]
+            elif hasattr(self, "momentum_vector"):
+                self.momentum_vector = ts
+
+        self.server_learning_rate = 1.0
+        self.server_momentum = 0.9
+        self.server_opt: bool = (self.server_momentum != 0.0) or (
+            self.server_learning_rate != 1.0
+        )
+
+    def __repr__(self) -> str:
+        """Compute a string representation of the strategy."""
+        rep = f"CustomFed(accept_failures={self.accept_failures})"
+        return rep
 
     def aggregate_fit(
         self,
@@ -81,12 +123,9 @@ class Strategy(FedProx):
             server_round, results, failures
         )
 
-        model_dir = "model"
-        model_path = f"{model_dir}/distributed_model.pth"
         round_path = (
-            f"{model_dir}/distributed_model_{self.last_round + server_round}.pth"
+            f"{self.model_dir}/distributed_model_{self.last_round + server_round}.pth"
         )
-        history_path = f"{model_dir}/distributed_history.npy"
 
         if aggregated_parameters is not None:
             net = get_model()
@@ -100,7 +139,7 @@ class Strategy(FedProx):
                     "epoch": self.last_round + server_round,
                     "model_state_dict": net.state_dict(),
                 },
-                model_path,
+                self.model_path,
             )
             torch.save(
                 {
@@ -110,9 +149,26 @@ class Strategy(FedProx):
                 round_path,
             )
 
+            if (
+                hasattr(self, "m_t")
+                and hasattr(self, "v_t")
+                and self.m_t is not None
+                and self.v_t is not None
+            ):
+                with open(self.optimizer_path, "wb") as f:
+                    for t in self.m_t:
+                        np.save(f, t)
+                    for t in self.v_t:
+                        np.save(f, t)
+
+            if hasattr(self, "momentum_vector") and self.momentum_vector is not None:
+                with open(self.optimizer_path, "wb") as f:
+                    for t in self.momentum_vector:
+                        np.save(f, t)
+
         train_loss = np.array([aggregated_metrics["train_loss"]])
         save_history(
-            history_path=history_path,
+            history_path=self.history_path,
             train_loss=train_loss,
         )
 
@@ -169,9 +225,10 @@ def server_fn(context: Context):
         initial_parameters=parameters,
         fit_metrics_aggregation_fn=aggregate_fit_metrics,
         evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-        proximal_mu=1e-4,
+        # proximal_mu=1e-4,
+        proximal_mu=0,
+        last_round=last_round if last_round != -1 else 0,
     )
-    strategy.last_round = last_round if last_round != -1 else 0
 
     config = ServerConfig(num_rounds=num_rounds)
 
