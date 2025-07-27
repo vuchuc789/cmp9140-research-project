@@ -79,9 +79,21 @@ class Strategy(FedProx, FedAdam):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args,
+            **kwargs,
+            # proximal_mu=1e-4,
+            proximal_mu=1e-3,
+            # proximal_mu=0,
+        )
 
-        self.last_round = last_round
+        self.eta = 1e-2
+
+        self.server_learning_rate = 1e-1
+        self.server_momentum = 0.9
+        self.server_opt: bool = (self.server_momentum != 0.0) or (
+            self.server_learning_rate != 1.0
+        )
 
         if os.path.exists(self.optimizer_path) and (
             (hasattr(self, "m_t") and hasattr(self, "v_t"))
@@ -102,13 +114,7 @@ class Strategy(FedProx, FedAdam):
             elif hasattr(self, "momentum_vector"):
                 self.momentum_vector = ts
 
-        self.eta = 1e-2
-
-        self.server_learning_rate = 1.0
-        self.server_momentum = 0.9
-        self.server_opt: bool = (self.server_momentum != 0.0) or (
-            self.server_learning_rate != 1.0
-        )
+        self.last_round = last_round
 
     def __repr__(self) -> str:
         """Compute a string representation of the strategy."""
@@ -227,8 +233,6 @@ def server_fn(context: Context):
         initial_parameters=parameters,
         fit_metrics_aggregation_fn=aggregate_fit_metrics,
         evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-        # proximal_mu=1e-4,
-        proximal_mu=0,
         last_round=last_round if last_round != -1 else 0,
     )
 
