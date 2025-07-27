@@ -108,6 +108,9 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         config = init_model(
             model_name=args.model_name,
             verbose=True,
+            # optimizer_type="adam",
+            # learning_rate=1e-5,
+            # regularization_rate=1e-7,
         )
         fit_model(
             *config,
