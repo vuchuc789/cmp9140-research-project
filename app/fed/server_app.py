@@ -82,9 +82,9 @@ class Strategy(FedProx, FedAdam):
         super().__init__(
             *args,
             **kwargs,
-            # proximal_mu=1e-4,
-            proximal_mu=1e-3,
-            # proximal_mu=0,
+            # proximal_mu=1e-4,  # prox
+            proximal_mu=1e-3,  # adam + prox
+            # proximal_mu=0,  # avg
         )
 
         self.eta = 1e-2
