@@ -1,14 +1,14 @@
 .venv/
 **/__pycache__/
 
-data/**/*
-!data/Benign.parquet.zst
-!data/Anomalous.parquet.zst
-!data/MinMaxScaler.gz
-!data/Protocol_OneHotEncoder.gz
+data*/**/*
+!data*/Benign.parquet.zst
+!data*/Anomalous.parquet.zst
+!data*/MinMaxScaler.gz
+!data*/Protocol_OneHotEncoder.gz
 
-model/test*
-model/distributed*
+model*/test*
+model*/distributed*
 
 **/.DS_Store
 

@@ -69,25 +69,27 @@ def evaluate(
     # Shape: (num_thresholds,)
     # accuracy = np.mean(pred_matrix == y_true.reshape(1, -1), axis=1)
 
-    accuracy = np.zeros_like(thresholds)
-    for i, t in enumerate(thresholds):
-        y_pred = (y_scores >= t).astype(int)
-        accuracy[i] = np.mean(y_pred == y_true)
-        if (i + 1) % 1000 == len(thresholds) % 1000:
-            print(f"[{i + 1:>4d}/{len(thresholds):>4d}] accuracy: {accuracy[i]:>7f}")
-    print()
+    # accuracy = np.zeros_like(thresholds)
+    # for i, t in enumerate(thresholds):
+    #     y_pred = (y_scores >= t).astype(int)
+    #     accuracy[i] = np.mean(y_pred == y_true)
+    #     if (i + 1) % 1000 == len(thresholds) % 1000:
+    #         print(f"[{i + 1:>4d}/{len(thresholds):>4d}] accuracy: {accuracy[i]:>7f}")
+    # print()
 
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
     best_precision = precision[best_idx]
     best_recall = recall[best_idx]
     best_f1 = f1_scores[best_idx]
-    best_accuracy = accuracy[best_idx]
+    # best_accuracy = accuracy[best_idx]
 
     # y_pred = pred_matrix[best_idx]
     y_pred = (y_scores >= best_threshold).astype(int)
     cm = confusion_matrix(y_true, y_pred)
     tn, fp, fn, tp = cm.ravel()
+
+    best_accuracy = np.mean(y_pred == y_true)
 
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
 
@@ -113,8 +115,9 @@ def evaluate(
 
             window_sum -= diffs[i]
             window_sum += diffs[i + patience]
-        print(f"Best AUC epoch: {np.argmax(batched_auc) + 1}")
-        print(f"Current epoch: {last_epoch + 1} (round: {last_epoch})\n")
+
+    print(f"Best AUC epoch: {np.argmax(batched_auc) + 1}")
+    print(f"Current epoch: {last_epoch + 1} (round: {last_epoch})\n")
 
     print(f"Avg Training Loss (from training history): {batched_train_loss[-1]:>7f}")
     print(
@@ -270,7 +273,7 @@ def evaluate(
     plt.plot(thresholds, precision[:-1], label="Precision")
     plt.plot(thresholds, recall[:-1], label="Recall")
     plt.plot(thresholds, f1_scores[:-1], label="F1-score")
-    plt.plot(thresholds, accuracy, label="Accuracy", linestyle="--")
+    # plt.plot(thresholds, accuracy, label="Accuracy", linestyle="--")
 
     # Add vertical line at best threshold
     plt.axvline(

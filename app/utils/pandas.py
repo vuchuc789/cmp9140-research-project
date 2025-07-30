@@ -316,6 +316,10 @@ def safe_int(x):
 def label_map(label: str):
     if label.startswith("DrDoS_"):
         return label.removeprefix("DrDoS_")
+    if label.startswith("DoS "):
+        return label.removeprefix("DoS ")
+    if label.startswith("Web Attack  "):
+        return label.removeprefix("Web Attack  ").replace(" ", "-")
 
     if label == "BENIGN":
         return "Benign"
