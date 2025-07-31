@@ -93,11 +93,11 @@ def evaluate(
 
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
 
-    print("Model information:\n")
-    print(model)
-    print()
-    print(optimizer)
-    print()
+    # print("Model information:\n")
+    # print(model)
+    # print()
+    # print(optimizer)
+    # print()
 
     print("Showing result...\n")
 
