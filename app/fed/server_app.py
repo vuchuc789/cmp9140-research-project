@@ -15,7 +15,7 @@ from flwr.common import (
 )
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.server.client_proxy import ClientProxy
-from flwr.server.strategy import FedAdam, FedProx
+from flwr.server.strategy import FedProx, FedYogi
 
 from app.model.train import init_model
 from app.utils.model import get_model, get_parameters, save_history, set_parameters
@@ -67,7 +67,7 @@ def aggregate_evaluate_metrics(
     }
 
 
-class Strategy(FedProx, FedAdam):
+class Strategy(FedProx, FedYogi):
     model_dir = "model"
     model_path = f"{model_dir}/distributed_model.pth"
     history_path = f"{model_dir}/distributed_history.npy"

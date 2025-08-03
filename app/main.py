@@ -4,7 +4,9 @@ from app.data.analyze import analyze
 from app.data.downsample import downsample
 from app.data.partition import view_distribution
 from app.data.preprocess import preprocess
+from app.data.statistic import statistic
 from app.model.evaluate import evaluate
+from app.model.loss import loss
 from app.model.train import fit_model, init_model
 
 
@@ -40,6 +42,11 @@ def main():
         help="show data analysis",
     )
     data_parser.add_argument(
+        "--statistic",
+        action="store_true",
+        help="do some statistical tests",
+    )
+    data_parser.add_argument(
         "--analyze-file",
         default="data/Benign.parquet.zst",
         help="path to data file",
@@ -71,6 +78,11 @@ def main():
         action="store_true",
         help="evaluate model",
     )
+    train_parser.add_argument(
+        "--loss",
+        action="store_true",
+        help="view models' loss",
+    )
     train_parser.set_defaults(func=lambda args: train_command(train_parser, args))
 
     args = parser.parse_args()
@@ -91,6 +103,10 @@ def data_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> N
     if args.analyze:
         print_help = False
         analyze(args.analyze_file)
+
+    if args.statistic:
+        print_help = False
+        statistic()
 
     if args.partition:
         print_help = False
@@ -122,6 +138,10 @@ def train_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     if args.evaluate:
         print_help = False
         evaluate(args.model_name)
+
+    if args.loss:
+        print_help = False
+        loss()
 
     if print_help:
         parser.print_help()

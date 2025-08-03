@@ -116,12 +116,12 @@ def preprocess():
 
         duplicate = df.duplicated(
             subset=[
-                # "Source IP",
-                # "Source Port",
-                # "Destination IP",
-                # "Destination Port",
-                # "Protocol",
-                # "Timestamp",
+                "Source IP",
+                "Source Port",
+                "Destination IP",
+                "Destination Port",
+                "Protocol",
+                "Timestamp",
                 "Flow Duration",
                 "Total Fwd Packets",
                 "Total Backward Packets",

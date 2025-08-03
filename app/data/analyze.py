@@ -8,6 +8,7 @@ def analyze(filepath="data/Benign.parquet.zst"):
     df = pd.read_parquet(filepath)
     print(df.info(verbose=True))
     print("Duplicate Count:", df.duplicated().sum())
+    print("Source IP Count:", len(pd.unique(df["Source IP"])))
 
     # Seaborn style
     sns.set(style="whitegrid")
