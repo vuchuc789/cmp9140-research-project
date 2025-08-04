@@ -153,7 +153,7 @@ def evaluate(
     )
     ax1.plot(
         batched_benign_test_loss,
-        label="Validation Loss",
+        label="Benign Loss",
         color="tomato",
         linewidth=2,
         linestyle="--",
@@ -166,7 +166,7 @@ def evaluate(
         linestyle=":",
     )
 
-    ax1.set_xlabel("Epoch or Round", fontsize=12)
+    ax1.set_xlabel("Epoch/Round", fontsize=12)
     ax1.set_ylabel("Loss (MSE)", fontsize=12)
     ax1.grid(True, linestyle="--", alpha=0.5)
 
@@ -188,7 +188,7 @@ def evaluate(
     ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="center right")
 
     plt.title(
-        "Autoencoder Learning Curve + Anomaly Loss + AUC (from training history)",
+        "Autoencoder Learning Curve + Loss + AUC (from training history)",
         fontsize=14,
     )
     plt.tight_layout()
