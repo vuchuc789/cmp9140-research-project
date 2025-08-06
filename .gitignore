@@ -9,3 +9,6 @@ model*/*
 
 **/.DS_Store
 
+thesis/main.*
+!thesis/main.tex
+!thesis/main.pdf
