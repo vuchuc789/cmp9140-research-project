@@ -12,3 +12,4 @@ model*/*
 thesis/main.*
 !thesis/main.tex
 !thesis/main.pdf
+thesis/*.fls
