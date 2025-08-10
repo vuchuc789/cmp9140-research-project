@@ -1,59 +1,32 @@
-This document is a project report template for the School of Computer Science, University of Lincoln. It should give you some direction and instruction for formatting and presenting your project report. Currently, this template is designed for postgraduate project reports. However, the template can be modified fairly easily to conform to, for example, an undergraduate/MCOMP project report.
+The rapid advancement of information technology over the past few decades has transformed the way individuals, organizations, and governments operate. From cloud computing and the Internet of Things (IoT) to mobile applications and distributed systems, digital infrastructure is now a part of almost every aspect of modern society. This ongoing transformation has led to an exponential growth in data generation, communication, and online services, which has been enabling unprecedented convenience, efficiency, and connectivity. However, this progress has also introduced significant security challenges. As systems become more complex and interdependent, they are becoming increasingly vulnerable to cyber attacks. Among these, Distributed Denial of Service (DDoS) attacks have emerged as one of the most prevalent threats due to their relatively simple execution, high disruptive potential, and difficulty to prevent.
 
-This document has been generated using \LaTeX, which is a widely used typesetting system in computer science, engineering, and other STEM disciplines. The following subsections of this chapter demonstrate some basic \LaTeX commands. If you would prefer to use the supplied LNCS Word template, then you should aim to replicate the formatting shown here.
-
-\section{Formatting mathematics}
-Here are two equations:
-
-\begin{align}
-a &= b + 1 \\
-\frac{\hbar^2}{2m}\nabla^2\Psi + V(\mathbf{r})\Psi
-&= -i\hbar \frac{\partial\Psi}{\partial t}    
-\end{align}
-
-
-And here is some text with some nice inline maths, $(x, y)$ wow $\gamma$ so cool $\rho$.
-
-\section{Figures and Tables}
-
-Here is a sentence, and you can see a nice picture in Figure \ref{fig:brayford}.
+DDoS attack is a type of attack that attempts to overwhelm a target system or network with a flood of malicious traffic. It prevents legitimate network traffic from accessing services and disrupts system functionality \citep{886455}. Unlike the traditional Denial of Service (DoS) initiated from a single source, "DDoS attacks are carried out with networks of Internet-connected machines" \citep{cloudflare-ddos-attack}. These networks consist of several computers and other devices (e.g., IoT devices), which are compromised by attackers using malware. These individual devices are called bots, and a group of them is a botnet. Once a botnet has been established, it starts sending requests to the target following the attacker's instructions. This potentially causes the target server or network to become exhausted, which results in a denial-of-service to normal traffic \citep{cloudflare-ddos-attack}. Figure \ref{fig:amplification_ddos_example} illustrates a DNS amplification attack, a common DDoS variant. In this attack, bots send domain resolution requests to DNS servers using a spoofed victim IP address, which causes large DNS responses to be sent to the victim and quickly overwhelms their network \citep{cloudflare-ddos-attack}.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{figures/brayford.jpg}
-    \caption{A picture of the Brayford from Google Images.}
-    \label{fig:brayford}
+    \includegraphics[width=\textwidth]{figures/amplification_ddos_example.png}
+    \caption{DNS Amplification Attack \citep{cloudflare-ddos-attack}.}
+    \label{fig:amplification_ddos_example}
 \end{figure}
 
-Also, a table can be found in Table \ref{tbl:example-table}. You should use a \LaTeX~table generator like \url{https://www.tablesgenerator.com/} if you want to make your life easier.
+Beyond the immediate technical disruption, DDoS attacks can severely impact economic and reputational aspects. For organizations, which depend on continuous online availability, even minutes of downtime can translate into significant revenue loss, loss of customer trust, and brand damage. The expansion of cloud-native applications and vulnerable IoT devices has further increased the attack surface. Additionally, the emergence of “DDoS-for-hire” or “booter” services, which sell attack capabilities on the dark web, enables even unskilled actors to launch large-scale disruptions with minimal effort \citep{fbi-ddos}. This popularization of attack tools has made DDoS not only a persistent problem but also one with an increasingly low barrier to entry.
 
-\begin{table}[h]
-    \caption{Here is a table. The caption goes above like this.}
+Recent high-profile incidents have demonstrated the growing scale and sophistication of DDoS threats. In October 2023, Google claimed that they had mitigated the largest DDoS attack ever, which exploited the HTTP/2 Rapid Reset vulnerability. The attack peaked at 398 million requests per second, which was 7.5 times larger than the previous record \citep{google-398-mil}. Less than two years later, this record was surpassed in June 2025, when Cloudflare blocked a 7.3 terabit-per-second attack, which was approximately 37.4 TB of UDP flood packets blasted in just 45 seconds. This amount of data was equal to streaming roughly 10,000 HD movies simultaneously \citep{cloudflare-7-3-tbps}. The historical list of famous DDoS attacks by \cite{cloudflare-ddos-list} reveals that peak attack volumes continue to rise, and record-breaking incidents occur with increasing frequency. These examples underscore a critical reality that the race between attackers and defenders in cyberspace is accelerating. As attack capabilities grow, the need for more effective, scalable, and adaptive DDoS protection solutions is increasingly urgent. Without continued innovation in detection and mitigation strategies, the stability and availability of modern digital infrastructure remain at risk.
+
+Machine learning is a subfield of artificial intelligence that enables “computers to learn and adapt without following explicit instructions, by using algorithms and statistical models to analyze and infer from patterns in data” \citep{oed-machine-learning}. In the context of cybersecurity, machine learning models can be utilized for detecting and mitigating DDoS attacks. By learning from traffic patterns, these models are able to distinguish normal network activities from potential malicious activities. They can also adapt to changes in data distributions over time, which are relevant for DDoS detection as attackers continuously update their attack techniques. This ability often outweighs the traditional approaches, which are based on traffic metrics monitoring and preconfigured alert thresholds. A variety of machine learning approaches can be applied to the task of DDoS detection, ranging from supervised methods, such as CNN and RNN, which are trained on labeled data to classify traffic, to unsupervised methods, such as k-means clustering, which identify patterns in data and flag anomalies that deviate from learned characteristics. Among these methods, autoencoders have gained attention for their simplicity, flexibility, and effectiveness in anomaly detection. An autoencoder is an unsupervised neural network architecture, which consists of two main components: an encoder, which compresses the input into a lower-dimensional latent representation, and a decoder, which reconstructs the input from this compressed form \citep{8616075}. When trained exclusively on benign traffic, an autoencoder learns to accurately reconstruct normal patterns, while abnormal traffic, such as a DDoS attack, tends to produce significantly higher reconstruction errors, leading to its deviation from learned patterns. This property makes autoencoders particularly suitable for detecting previously unseen attack types, where labeled data for supervised learning may be insufficient.
+
+While machine learning-based detection offers clear benefits, its success depends heavily on either data aggregation or permissions to access data from multiple sources. In practice, DDoS-related data is distributed across multiple localized devices, such as network routers, gateway proxies, and IoT devices, which cannot be easily centralized due to privacy regulations, security concerns, and the large volume of network traffic. Federated learning with the introduction of the federated averaging algorithm (FedAvg) addresses this challenge by enabling collaborative model training across multiple clients without requiring direct access to their raw data \citep{mcmahan2023communication}. In the federated learning framework, each client trains a local model on its own network traffic data and sends only model updates to a central server, where they are aggregated to produce an improved global model (Figure \ref{fig:fl_architecture}). Initially developed for privacy-preserving applications such as Google Keyboard’s predictive text \citep{47586}, federated learning has since been applied to spam filtering, malware detection, and intrusion detection. In the context of DDoS detection, it enables models to learn from geographically and topologically diverse traffic patterns, improving their ability to detect varied and evolving attack types.
+
+\begin{figure}[h]
     \centering
-    \begin{tabular}{l|l|c}
-        First name & Last name & Age \\
-        \hline\hline
-        Bob & Bobbington & 24 \\
-        Benth & Wavies & 49 \\
-        Joe & Bloggs & 37 \\
-        Billy & Bob & 10 \\
+    \includegraphics[width=\textwidth]{figures/fl_architecture.png}
+    \caption{Federated Learning Architecture \citep{gfg-fl-architecture}.}
+    \label{fig:fl_architecture}
+\end{figure}
 
-    \end{tabular}
-    \label{tbl:example-table}
-\end{table}
+However, applying federated learning in DDoS detection introduces several unique challenges. Network traffic across clients is often non-identically and non-independently distributed (non-IID), which is due to differences in network topology, user behavior, and regional traffic characteristics. This heterogeneity can significantly degrade model performance and slow convergence. Moreover, the limitation in communication bandwidth and differences in clients' computational capabilities can further aggravate these drawbacks. While some prior studies have applied federated learning in intrusion detection, many rely on oversimplified assumptions or underestimate effects of non-IID data, which leaves a gap for improvements and solutions to address real-world complexities.
 
-\section{Referencing}
-The included \texttt{[harvard]} in the document class command means that referencing will follow a Harvard style. You will be able to cite things inline with parentheses. You can do this by using \texttt{\textbackslash citep\{citekey\}}. It will print out something like this \citep{aad2012observation}. Or alternatively, you can use \texttt{\textbackslash cite\{citekey\}} to cite things like this \cite{chatrchyan2012observation}.
+The main goal of this project is to explore how federated learning can be made more effective for anomaly-based DDoS detection in network environments where traffic patterns differ widely between participants. In particular, the study looks at whether advanced federated optimization algorithms, such as FedProx, FedAdam, and FedYogi, can help overcome the challenges caused by non-IID traffic distributions. To achieve this, the study will (1) compare the performance of the standard federated averaging method (FedAvg) under different numbers of clients and varying levels of data heterogeneity, (2) examine how the selected optimization algorithms affect detection accuracy, convergence speed, and model stability, and (3) investigate whether combining these algorithms can provide further gains. The experiments use autoencoders for anomaly detection, with all testing carried out in controlled simulation environments. Although the study examines a range of non-IID data configurations, it is limited to offline experiments and does not address live, real-time deployment or continuous model updates in operational networks.
 
-It is worth noting that the standard for referencing is Harvard, so you will not need to change this option. However, please double and triple check this to make sure you are using the correct referencing style. Also, ask your supervisor to make sure. This template uses Bib\LaTeX~for referencing, with a Biber backend. This is primarily due to the extensive features Bib\LaTeX~provides, along with the option of glossaries. If you want to customise the referencing style, you can either modify the template slightly to use different options, or use \texttt{\textbackslash usepackage} again to reimport it. There's probably some commands to change its options after its been imported too.
+The rest of this dissertation is structured as follows. Chapter 2 reviews background material, including DDoS attack methods, approaches to anomaly detection, and the principles of federated learning and adaptive optimization. Chapter 3 explains the methodology, from dataset preparation and autoencoder design to the federated learning setup and experiment parameters. Chapter 4 describes the metrics and procedures used to evaluate the models. Chapter 5 presents and interprets the results, comparing FedAvg, FedProx, FedAdam, and FedYogi under different client counts and non-IID conditions, and assessing the performance of a combined FedProx–FedAdam approach. Chapter 6 closes with a summary of the findings, the study’s limitations, and opportunities for future work.
 
-\subsection{Ludography}
-This report template also contains an optional ludography. For Games Computing students to use this, just put references into your bib file as usual with the game's details. Then, make sure \texttt{keywords} is set to \texttt{\{game\}}. This is what is used to determine which references are games, and which are actual papers. For a more elaborate example, see \texttt{bib/ludography.bib}.
-
-Also, make sure that the \texttt{title} key is actually the author of the game, and the \texttt{author} is the title of the game. The reason this is swapped around is because Bib\LaTeX~likes to print references out with the author first.
-
-Then, just add \texttt{\textbackslash printLudography} with an optional title argument to print out all citations like \texttt{\textbackslash printLudography} or \texttt{\textbackslash printLudography[Games]}.
-
-You can also use the \texttt{ludography} environment if you wish to print out some text before the list of games is printed. An example of this can be seen in \texttt{main.tex}.
-
-To cite games, you can \texttt{\textbackslash cite} it like any other reference. However, if you want it to display the title instead of the standard referencing style, you can use \texttt{\textbackslash citeGame} instead.
