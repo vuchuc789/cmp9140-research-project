@@ -143,11 +143,11 @@ The final results for both datasets are summarized in Table \ref{tbl:central_tra
     \begin{tabular}{l|c|c}
         Metrics & CIC-IDS2017 & CIC-DDoS2019 \\
         \hline\hline
-        Precision (\%) & 91.04 & 95.02 \\
-        Recall (\%) & 94.34 & 99.51 \\
-        F1-Score (\%) & 92.66 & 97.21 \\
-        Accuracy (\%) & 92.53 & 97.14 \\
-        AUC (\%) & 96.61 & 98.11 \\
+        Precision & 91.04 & 95.02 \\
+        Recall & 94.34 & 99.51 \\
+        F1-Score & 92.66 & 97.21 \\
+        Accuracy & 92.53 & 97.14 \\
+        AUC & 96.61 & 98.11 \\
 
     \end{tabular}
     \label{tbl:central_train_results}
@@ -273,7 +273,7 @@ Table \ref{tbl:fedavg_results} shows that FedAvg achieves strong performance acr
     \centering
     \begin{tabular}{l|c|c|c|c|c}
         \multirow{2}{*}{Partition} & \multirow{2}{*}{Clients} & \multicolumn{2}{|c|}{CIC-IDS2017} & \multicolumn{2}{|c}{CIC-DDoS2019} \\
-        \cline{3-6} & & F1-Score (\%) & Accuracy (\%) & F1-Score (\%) & Accuracy (\%) \\
+        \cline{3-6} & & F1-Score & Accuracy & F1-Score & Accuracy \\
         \hline\hline
         IID & 10 & 91.24 & 90.71 & 94.02 & 93.66 \\
         IID & 20 & 89.17 & 88.63 & 94.73 & 94.45 \\
@@ -301,7 +301,7 @@ The performance metrics obtained from these trials are summarized in Table \ref{
     \centering
     \begin{tabular}{l|c|c|c|c|c}
         \multirow{2}{*}{Partition} & \multirow{2}{*}{Clients} & \multicolumn{2}{|c|}{CIC-IDS2017} & \multicolumn{2}{|c}{CIC-DDoS2019} \\
-        \cline{3-6} & & F1-Score (\%) & Accuracy (\%) & F1-Score (\%) & Accuracy (\%) \\
+        \cline{3-6} & & F1-Score & Accuracy & F1-Score & Accuracy \\
         \hline\hline
         IID & 10 & 91.39 & 91.04 & 95.81 & 95.64 \\
         IID & 20 & 90.73 & 90.29 & 96.61 & 96.53 \\
@@ -350,7 +350,7 @@ The figure reveals that FedAdam exhibits the most volatile behavior during the e
     \centering
     \begin{tabular}{l|c|c|c|c|c}
         \multirow{2}{*}{Partition} & \multirow{2}{*}{Clients} & \multicolumn{2}{|c|}{CIC-IDS2017} & \multicolumn{2}{|c}{CIC-DDoS2019} \\
-        \cline{3-6} & & F1-Score (\%) & Accuracy (\%) & F1-Score (\%) & Accuracy (\%) \\
+        \cline{3-6} & & F1-Score & Accuracy & F1-Score & Accuracy \\
         \hline\hline
         IID & 10 & 80.82 & 82.46 & 86.06 & 84.16 \\
         IID & 20 & 83.02 & 83.12 & 85.76 & 83.75 \\
@@ -372,7 +372,7 @@ FedAdam was subsequently trained on each data configuration and experimental set
     \centering
     \begin{tabular}{l|c|c|c|c|c}
         \multirow{2}{*}{Partition} & \multirow{2}{*}{Clients} & \multicolumn{2}{|c|}{CIC-IDS2017} & \multicolumn{2}{|c}{CIC-DDoS2019} \\
-        \cline{3-6} & & F1-Score (\%) & Accuracy (\%) & F1-Score (\%) & Accuracy (\%) \\
+        \cline{3-6} & & F1-Score & Accuracy & F1-Score & Accuracy \\
         \hline\hline
         IID & 50 & 88.65 & 87.84 & 95.81 & 95.65 \\
         Dirichlet 0.6 & 50 & 88.57 & 87.83 & 97.04 & 96.97 \\
