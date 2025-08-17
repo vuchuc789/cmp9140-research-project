@@ -89,6 +89,8 @@ def evaluate(
     cm = confusion_matrix(y_true, y_pred)
     tn, fp, fn, tp = cm.ravel()
 
+    best_fpr = fp / (fp + tn)
+
     # best_accuracy = np.mean(y_pred == y_true)
 
     best_roc_idx = np.argmin(np.abs(roc_thresholds - best_threshold))
@@ -140,6 +142,7 @@ def evaluate(
     print(f"Recall   : {best_recall:.4f}")
     print(f"F1-score : {best_f1:.4f}")
     print(f"Accuracy : {best_accuracy:.4f}")
+    print(f"FPR      : {best_fpr:.4f}")
     print(f"AUC      : {roc_auc:.4f}")
 
     fig, ax1 = plt.subplots(figsize=(10, 5))
