@@ -1,12 +1,6 @@
 \section{Datasets \& Statistics}
 
-This project works on two well-known benchmark datasets developed by the Canadian Institute for Cybersecurity (CIC), which are CIC-IDS2017 and CIC-DDoS2019. These datasets are widely used in the field of network intrusion detection systems (IDS) due to their rich, labeled traffic data, realistic simulation of attack scenarios, and comprehensive coverage of modern cyber threats. Both datasets provide a reliable foundation for evaluating machine learning models designed to detect anomalous or malicious activity within large-scale network environments.
-
-The CIC-IDS2017 dataset was designed to reflect most updated intrusion patterns across various attack surfaces. It contains traffic data corresponding to a wide range of common network-based attacks, including Brute Force FTP, Brute Force SSH, DoS (Denial of Service), Heartbleed, Web Attacks, Infiltration, Botnet, and DDoS (Distributed Denial of Service) \citep{cicids2017}. The dataset was generated in a controlled environment using realistic user behavior simulations, allowing the resulting flows to mimic the structure and variability of production-level traffic. The benign traffic in CIC-IDS2017 was generated using B-Profile, a profiling system that simulates user activities based on predefined usage patterns and time-based distributions \citep{Sharafaldin2018TowardGA}. This ensures that the dataset includes realistic background traffic, which is essential for training anomaly-based models that aim to distinguish between normal and abnormal behavior.
-
-In contrast, the CIC-DDoS2019 dataset focuses specifically on Distributed Denial of Service (DDoS) attacks, which are among the most prevalent and damaging forms of cyberattacks. This dataset includes a wide variety of modern attacks, which were executed using both TCP and UDP protocols. The attack types include MSSQL, SSDP, CharGen, NTP, TFTP, DNS, LDAP, NETBIOS, and SNMP \citep{cicddos2019}. These attacks were proceeded from a separate network to emulate distributed attack vectors, thereby increasing the validity of the dataset for real-world DDoS detection research. Similar to CIC-IDS2017, the benign traffic in CIC-DDoS2019 was also generated using the B-Profile system, ensuring consistency in traffic generation methodologies across both datasets. However, the overall distribution of benign and malicious samples differs dramatically between the two, with CIC-DDoS2019 being heavily skewed toward attack traffic.
-
-As this study follows an anomaly detection approach, all attack types within each dataset were aggregated into a single \textbf{"anomalous" } class, while benign traffic was kept labeling as \textbf{"benign"}. This approach is common in intrusion detection research and is particularly suitable for unsupervised or semi-supervised anomaly detection techniques, such as autoencoders, which assume that only normal behavior is observed during training. Figure \ref{fig:data_distribution} illustrates the class distribution for both datasets. The CIC-IDS2017 dataset contains 2,271,122 benign samples, accounting for roughly 80\% of the data, and 556,555 anomalous samples, which make up the remaining 20\%. This moderate imbalance is generally manageable and reflects a variety of attack scenarios occurring alongside typical user traffic. By contrast, the CIC-DDoS2019 dataset is highly imbalanced, consisting of 67,703,699 anomalous samples ($\approx$ 99.8\%) and only 108,381 benign samples ($\approx$ 0.2\%). This extreme imbalance reflects the reality of DDoS attacks, where malicious traffic can overwhelm network infrastructure with millions of malicious packets in a short span. Such imbalance poses significant challenges for machine learning models, especially those that assume equal class distributions.
+The experiments were conducted on CIC-IDS2017 and CIC-DDoS2019 datasets, which provided diverse attack types and realistic traffic patterns. The CIC-IDS2017 dataset contains a wide range of common network attacks, while the CIC-DDoS2019 dataset focuses explicitly on DDoS attacks. Their complementary characteristics allowed for assessing both general intrusion detection and focused DDoS detection performance. As this study follows an anomaly detection approach, all attack types within each dataset were aggregated into a single \textbf{"anomalous" } class, while benign traffic was kept labeling as \textbf{"benign"}. This approach is common in intrusion detection research and is particularly suitable for unsupervised or semi-supervised anomaly detection techniques, such as autoencoders, which assume that only normal behavior is observed during training. Figure \ref{fig:data_distribution} illustrates the class distribution for both datasets. The CIC-IDS2017 dataset contains 2,271,122 benign samples, accounting for roughly 80\% of the data, and 556,555 anomalous samples, which make up the remaining 20\%. This moderate imbalance is generally manageable and reflects a variety of attack scenarios occurring alongside typical user traffic. By contrast, the CIC-DDoS2019 dataset is highly imbalanced, consisting of 67,703,699 anomalous samples ($\approx$ 99.8\%) and only 108,381 benign samples ($\approx$ 0.2\%). This extreme imbalance reflects the reality of DDoS attacks, where malicious traffic can overwhelm network infrastructure with millions of malicious packets in a short span. Such imbalance poses significant challenges for machine learning models, especially those that assume equal class distributions.
 
 \begin{figure}[h]
     \centering
@@ -15,7 +9,7 @@ As this study follows an anomaly detection approach, all attack types within eac
     \label{fig:data_distribution}
 \end{figure}
 
-Both datasets are structured as flow-based records, rather than raw packet-level captures. This is accomplished using CICFlowMeter \citep{cicflowmeter}, a tool that converts packet captures (PCAP files) into flow summaries. Each flow represents a stream of packets between a source and destination and is characterized by a total of 82 features. These features are categorized as follows:
+Both datasets store the network data using a flow structure instead of the common package structure. These flows are recorded using CICFlowMeter \citep{cicflowmeter}, a tool that converts packet captures (PCAP files) into flow details. Each flow represents a stream of packets between a source and destination and is characterized by a total of 82 features (The list of features is shown in the Appendices). These features are categorized as follows:
 
 \begin{itemize}
     \item Metadata (5 features): Source IP, Source Port, Destination IP, Destination Port, Timestamp
@@ -25,13 +19,7 @@ Both datasets are structured as flow-based records, rather than raw packet-level
 
 These features provide a rich and diverse representation of network behavior, which enables models to capture both temporal and structural differences between normal and malicious activity.
 
-All numerical features are non-negative and exhibit a power-law distribution, as samples visualized in Figure \ref{fig:feature_distribution}. This means that most feature values are concentrated near zero, while a small number of outliers have significantly larger values. This long-tailed distribution is typical of network traffic data, where most flows are short and lightweight, but some flows are exceptionally large or long-lived (e.g., bulk transfers, attacks). Such skewness introduces several modeling challenges, including:
-
-\begin{itemize}
-    \item High variance and outlier sensitivity
-    \item Difficulty in setting universal thresholds or decision boundaries
-    \item The need for feature scaling or normalization to avoid domination by large-magnitude features
-\end{itemize}
+All numerical features are non-negative and exhibit a power-law distribution, as samples are visualized in Figure \ref{fig:feature_distribution}. This means that most feature values are concentrated near zero, while a small number of outliers have significantly larger values. This long-tailed distribution is typical of network traffic data, where most flows are short and lightweight, but some flows are exceptionally large or long-lived (e.g., bulk transfers, attacks). Such skewness introduces several modeling challenges, including (1) high variance and outlier sensitivity, (2) difficulty in setting universal thresholds or decision boundaries, and (3) the need for feature scaling or normalization to avoid domination by large-magnitude features.
 
 \begin{figure}[h]
     \centering
@@ -40,14 +28,14 @@ All numerical features are non-negative and exhibit a power-law distribution, as
     \label{fig:feature_distribution}
 \end{figure}
 
-To quantitatively assess the discriminative power of features, the Mann-Whitney U test is applied to each numerical feature. This non-parametric hypothesis test evaluates whether two independent samples (benign and anomalous) come from different distributions. Unlike parametric tests (e.g., t-tests), the Mann-Whitney U test does not assume normality, making it well-suited for the skewed distributions found in CIC datasets. Using a significance level of 0.05 ($\alpha = 0.05$), the test was conducted on each of the 76 numerical features for both datasets. The results indicate that the majority of features show statistically significant differences between the benign and anomalous groups:
+To quantitatively assess the discriminative power of features, the Mann-Whitney U test is applied to each numerical feature. This non-parametric hypothesis test evaluates whether two independent samples (benign and anomalous) come from different distributions. Unlike parametric tests (e.g., the two-sample t-tests), the Mann-Whitney U test does not assume normality, making it well-suited for the skewed distributions found in CIC datasets. Using a significance level of 0.05 ($\alpha = 0.05$), the test was conducted on each of the 76 numerical features for both datasets. The results indicate that the majority of features show statistically significant differences between the benign and anomalous groups:
 
 \begin{itemize}
     \item CIC-IDS2017: 68 out of 76 features yielded p-values < 0.05
     \item CIC-DDoS2019: 64 out of 76 features yielded p-values < 0.05
 \end{itemize}
 
-In many cases, the p-values were so small that they were recorded as 0.0, a result of floating-point underflow in the float64 data type. These values are not literally zero, but are smaller than the minimum representable positive number, often less than $2.23 \times 10^{-308}$ \citep{w3floatnum}. A sample of the p-values is presented in Table \ref{tbl:mannwhitneyu_results} to illustrate this point.
+In many cases, the p-values were so small that they were recorded as 0.0, a result of floating-point underflow in the float64 data type. These values are not literally zero, but are smaller than the minimum representable positive number, often less than $2.23 \times 10^{-308}$ \citep{w3floatnum}. A sample of the p-values is presented in Table \ref{tbl:mannwhitneyu_results} to illustrate this point (The full results are shown in the Appendices).
 
 \begin{table}[h]
     \caption{Mann-Whitney U test’s sample p-values.}
@@ -70,13 +58,12 @@ In summary, the CIC-IDS2017 and CIC-DDoS2019 datasets offer rich, diverse, and h
 
 \section{Centralized Training}
 
-Before training, both datasets underwent a series of preprocessing steps to ensure data quality and compatibility with the neural network model. First, duplicate records, as well as samples containing missing (NaN) or infinite (Inf) values, were identified and removed. This step was essential to prevent distorted learning caused by invalid or redundant entries. The metadata features were also removed, as they were artificially generated and carried no semantic value related to actual network behavior. The only categorical feature (Protocol) was transformed using one-hot encoding to allow the model to process it numerically. As a result, the number of input features decreased from 82 to 79 (76 numeric + 3 encoded protocol classes). Next, feature scaling was applied to normalize the numerical input space. Due to the highly skewed distributions of most numerical features, which follow a power law as illustrated earlier, raw values were first log-transformed using Equation \ref{eq:logscaled} to compress the range and reduce the impact of extreme outliers. The sample distributions after scaled are shown in Figure \ref{fig:log_scaled_feature_distribution}.
+Before training, both datasets underwent a series of preprocessing steps to ensure data quality and compatibility with the neural network model. First, duplicate records, as well as samples containing missing (NaN) or infinite (Inf) values, were identified and removed. This step was essential to prevent distorted learning caused by invalid or redundant entries. The metadata features were also removed, as they were artificially generated and carried no semantic value related to actual network behavior. The only categorical feature (Protocol) was transformed using one-hot encoding to allow the model to process it numerically. As a result, the number of input features decreased from 82 to 79 (76 numeric + 3 encoded protocol classes). Next, feature scaling was applied to normalize the numerical input space. Due to the highly skewed distributions of most numerical features, which follow a power law as illustrated earlier, raw values were first log-transformed using Equation \ref{eq:logscaled} to compress the range and reduce the impact of extreme outliers. The sample distributions after scaling are shown in Figure \ref{fig:log_scaled_feature_distribution}, which are significantly less skewed with values roughly lying in the [0,20] range. This helps models deal better with outliers. Following this transformation, min-max normalization was used to scale all features into the [0, 1] range, which facilitates faster and more stable neural network convergence.
 
 \begin{align} \label{eq:logscaled}
 y &= \log(1 + x)
 \end{align}
 
-Following this transformation, min-max normalization was used to scale all features into the [0, 1] range, which facilitates faster and more stable neural network convergence.
 
 \begin{figure}[h]
     \centering
@@ -87,28 +74,38 @@ Following this transformation, min-max normalization was used to scale all featu
 
 The training and testing split was then performed. Only benign samples were used for training to simulate a realistic unsupervised anomaly detection setting where the model only learns the normal behavior of the network. The benign data was split using an 80:20 ratio for training and testing. For evaluation purposes, the anomalous data was downsampled to match the number of benign samples in the test set (1:1 ratio). To stay within hardware limits, the 2,271,122 benign samples in CIC-IDS2017 were also downsampled to 113,555 (1:20 ratio) before splitting. This balanced and reduced setup ensured fair evaluation while maintaining efficiency.
 
-The autoencoder model used for centralized training was intentionally kept simple yet effective. It comprised a symmetric architecture with an encoder of (79-64-32-16) and a decoder of (16-32-64-79). The mean squared error (MSE) loss function was used to quantify the reconstruction error between the input and output. The training was performed using Stochastic Gradient Descent with Momentum (SGDM) to accelerate convergence and avoid local minima. The following hyperparameters were selected after empirical tuning:
+The autoencoder model used for centralized training was intentionally kept simple yet effective. It comprised a symmetric architecture with an encoder of (79-64-32-16) and a decoder of (16-32-64-79). The mean squared error (MSE) loss function was used to quantify the reconstruction error between the input and output. The training was performed using Stochastic Gradient Descent with Momentum (SGDM) to accelerate convergence and avoid local minima. The following hyperparameters were selected after empirical tuning with the random search strategy:
 
 \begin{itemize}
     \item Learning rate: 0.01
     \item Batch size: 64
-    \item Epochs: 20
     \item L2 regularization (weight decay): $10^{-6}$
 \end{itemize}
  
 This configuration proved effective for reconstructing benign flows while yielding low reconstruction errors for normal data and significantly higher errors for anomalous samples, which was used for further experiments in the next sections.
 
-Figure \ref{fig:cicids2017_central} illustrates the model’s training process using the CIC-IDS2017 dataset (a similar trend was observed for CIC-DDoS2019). Four key metrics were tracked across training rounds: training loss, testing loss (benign only), anomalous testing loss, and AUC (Area Under the Curve). The training loss and benign test loss converged and stabilized around the 5th epoch, indicating that the model effectively learned to reconstruct benign traffic. In contrast, the anomalous test loss and AUC began to stabilize after approximately 10 epochs. All four curves progressed smoothly without significant fluctuations, which suggests good learning dynamics and no overfitting or vanishing gradients observed.
+Figure \ref{fig:central_perf} illustrates the model’s training process on the CIC-IDS2017 and CIC-DDoS2019 datasets. Four key metrics were tracked across epochs: training loss, benign test loss, anomalous test loss, and AUC. The training loss, benign test loss, and AUC converged and stabilized around the 10th epoch, indicating that the model effectively learned to reconstruct benign traffic in both datasets. During the early epochs, the model trained on CIC-IDS2017 demonstrated slightly faster convergence compared to the model trained on CIC-DDoS2019. In contrast, the anomalous test loss continued to decrease beyond the 10th epoch, which reflects overfitting as the model increasingly generalized anomalous traffic. This behavior gradually reduces the model’s discriminative capability, suggesting that training should be stopped around the 10th epoch to achieve optimal performance. Furthermore, all four curves progressed smoothly without significant fluctuations, which suggests good learning dynamics and no vanishing gradients observed.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{figures/cicids2017_central.png}
-    \caption{Centralized Training History (CIC-IDS2017).}
-    \label{fig:cicids2017_central}
+
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/cicids2017_central.png}
+        \caption{CIC-IDS2017}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/cicddos2019_central.png}
+        \caption{CIC-DDoS2019}
+    \end{subfigure}
+
+    \caption{Centralized Training History.}
+    \label{fig:central_perf}
 \end{figure}
 
-
-After training, additional performance metrics were computed to assess detection capabilities. These included precision, recall, accuracy, and F1-score. A threshold tuning process was carried out using the precision\_recall\_curve function from Scikit-Learn \citep{sklearnprc}, which generates a range of thresholds from predicted reconstruction errors. The optimal threshold was selected based on the maximum F1-score, which balanced precision and recall. Figures \ref{fig:threshold_selection} prove this selection approach is effective.
+After training, additional performance metrics were computed to evaluate the model’s detection capability. These included precision, recall, accuracy, F1-score, false positive rate (FPR), and AUC. Threshold tuning was performed using the roc\_curve \citep{sklearnrc} and precision\_recall\_curve \citep{sklearnprc} functions from Scikit-learn, which generate a range of thresholds based on predicted reconstruction errors. The optimal threshold was selected according to the maximum F1-score, ensuring a balance between precision and recall. Figures \ref{fig:threshold_selection} validate the effectiveness of this selection approach. As shown in Figure \ref{fig:threshold_selection_recon}, the benign loss is concentrated near zero, indicating that the model converged successfully, while the chosen threshold clearly separates benign and anomalous losses. In the ROC curve (Figure \ref{fig:threshold_selection_roc}), the threshold lies close to the point (0,1), reflecting an optimal trade-off between TPR (recall) and FPR. Finally, Figure \ref{fig:threshold_selection_metrics} confirms that the threshold derived from the maximum F1-score also optimizes precision, recall, and accuracy simultaneously.
 
 \begin{figure}[h]
     \centering
@@ -117,25 +114,28 @@ After training, additional performance metrics were computed to assess detection
         \centering
         \includegraphics[width=\textwidth]{figures/recon_loss.png}
         \caption{Reconstruction Loss}
+        \label{fig:threshold_selection_recon}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/roc.png}
         \caption{ROC Curve}
+        \label{fig:threshold_selection_roc}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/performance.png}
         \caption{Metrics}
+        \label{fig:threshold_selection_metrics}
     \end{subfigure}
 
     \caption{Threshold Selection (CIC-DDoS2019).}
     \label{fig:threshold_selection}
 \end{figure}
 
-The final results for both datasets are summarized in Table \ref{tbl:central_train_results}. All key performance indicators exceeded 90\%, which indicated strong baseline performance. These results serve as a benchmark for subsequent experiments in the federated learning setup, where model performance is expected to fluctuate due to decentralization and data heterogeneity.
+The final training results for both datasets are summarized in Table \ref{tbl:central_train_results}. The model performs consistently well on both datasets, but results are notably stronger on CIC-DDoS2019 across all metrics. The very high recall and low FPR on CIC-DDoS2019 suggest that the dataset has clearer separation between benign and attack traffic compared to CIC-IDS2017. CIC-IDS2017 results, while slightly lower, still indicate strong detection ability, but the higher FPR (8.31\%) hints at more overlap between benign and malicious patterns, making classification more challenging. Overall, these results demonstrate that the centralized model is effective at detecting DDoS attacks, especially in the CIC-DDoS2019 dataset, where it approaches near-perfect detection performance. These centralized results establish a solid baseline performance, which serves as the foundation for subsequent evaluation in federated learning settings.
 
 \begin{table}[h]
     \caption{Centralized Training Results.}
@@ -163,7 +163,7 @@ To enable federated training, the benign portion of each dataset must first be p
     \item Dirichlet $\alpha=0.3$ Partitioning: Highly skewed distribution to simulate strong heterogeneity among clients.
 \end{itemize}
 
-Each dataset was partitioned using the above strategies with client counts set to 10, 20, and 50, producing a variety of federated settings. The key used for partitioning was the source IP address, under the assumption that traffic originating from different IPs could naturally represent distinct users or devices in a network. However, during data exploration, it was discovered that the distribution of source IP addresses is highly imbalanced. Specifically, the CIC-DDoS2019 dataset contains 1,575 unique benign IP addresses, while the CIC-IDS2017 dataset contains 5600. Despite the seemingly large numbers, the traffic is highly concentrated: over 80\% of benign flows in CIC-DDoS2019 originate from just four IPs in the 192.168.50.0/24 subnet (Figure \ref{fig:src_ip_count_2019}), and in CIC-IDS2017, a similar trend was observed with 13 dominant IPs from the 192.168.10.0/24 range (Figure \ref{fig:src_ip_count_2017}). This heavy concentration significantly limits the effectiveness of a naive IP-based client mapping, as many clients would have insufficient data to contribute meaningfully to training. Consequently, random shuffling and controlled partitioning were applied to ensure adequate client diversity and sample count while preserving realistic non-IID conditions. The IID setup ensured each client received an equal number of samples, while both Dirichlet-based partitions introduced varying levels of client imbalance and feature distribution skew. The lower the Dirichlet $\alpha$ parameter, the more skewed the allocation becomes, mimicking extreme heterogeneity observed in practice.
+Each dataset was partitioned using the above strategies with client counts set to 10, 20, and 50, producing a variety of federated settings. The key used for partitioning was the source IP address, under the assumption that traffic originating from different IPs could naturally represent distinct users or devices in a network. However, during data exploration, it was discovered that the distribution of source IP addresses is highly imbalanced. Specifically, the CIC-DDoS2019 dataset contains 1,575 unique benign IP addresses, while the CIC-IDS2017 dataset contains 5600. Despite the seemingly large numbers, the traffic is highly concentrated: over 80\% of benign flows in CIC-DDoS2019 originate from just four IPs in the 192.168.50.0/24 subnet (Figure \ref{fig:src_ip_count_2019}), and in CIC-IDS2017, a similar trend was observed with 13 dominant IPs from the 192.168.10.0/24 range (Figure \ref{fig:src_ip_count_2017}). This heavy concentration significantly limits the effectiveness of a naive IP-based client mapping, as many clients would have insufficient data to contribute meaningfully to training. 
 
 \begin{figure}[h]
     \centering
@@ -184,6 +184,8 @@ Each dataset was partitioned using the above strategies with client counts set t
 
     \caption{Top 20 Benign Source IP Addresses.}
 \end{figure}
+
+Consequently, random shuffling and controlled partitioning were applied to ensure adequate client diversity and sample count while preserving realistic non-IID conditions. The IID setup ensured each client received an equal number of samples, while both Dirichlet-based partitions introduced varying levels of client imbalance and feature distribution skew. The lower the Dirichlet $\alpha$ parameter, the more skewed the allocation becomes, mimicking extreme heterogeneity observed in practice.
 
 Figures \ref{fig:partition_distributions} illustrate the distribution of samples across 20 clients in CIC-DDoS2019 under each partitioning method. The IID distribution appears flat, confirming equal client sample sizes, while the Dirichlet $\alpha=0.6$ and $\alpha=0.3$ partitions show increasingly unbalanced distributions, particularly with $\alpha=0.3$, where some clients dominate in sample count while others receive very few.
 
@@ -235,11 +237,7 @@ To quantify the volume and consistency of data across partitioning methods, Tabl
     \label{tbl:partition_descriptive}
 \end{table}
 
-Once the data partitions were prepared, federated training was conducted following the FedAvg algorithm for each configuration. The number of global training rounds was set to 10, 20, and 30 for the 10-client, 20-client, and 50-client setups, respectively. These round values were carefully selected to ensure that the entire dataset was effectively utilized across all clients, while also maintaining a reasonable training time that aligns with the computational limitations of the available hardware. In each round, only a subset of clients participated in training to simulate realistic partial participation and to prevent memory and CPU overload. Specifically, the fraction fit parameter in the federated learning framework was configured to allow only 5 clients to perform training or evaluation concurrently. Accordingly, the fraction values were set to 0.5 for the 10 clients, 0.25 for 20 clients, and 0.1 for 50 clients. This design choice provided a balance between computational efficiency and representation across clients in each round.
-
-The number of local training epochs per client was fixed at 10 for all experiments. This value was selected based on the convergence behavior observed in centralized training experiments, where 10 epochs provided sufficient learning without signs of overfitting or excessive computational overhead. This consistency in local training also allows for a fair comparison across partitioning strategies and client numbers, ensuring that variations in performance can be attributed to data heterogeneity and client distribution rather than differences in local computation.
-
-Figure \ref{fig:fedavg_performance} illustrates the training performance of the model under the 50-client federated setup across different data heterogeneity levels. Although no signs of divergence were observed during training, there is a clear trend of increasing instability as data becomes more non-IID. Specifically, the training loss, benign sample loss, anomalous sample loss, and AUC scores all exhibit greater fluctuations when moving from an IID partition to more skewed Dirichlet distributions (i.e., IID < Dirichlet $\alpha=0.6$ < Dirichlet $\alpha=0.3$). This suggests that as the non-IIDness of client data increases, the training process becomes more sensitive and volatile, likely due to inconsistent gradients and conflicting local model updates. These fluctuations reflect the challenge of achieving stable convergence in highly heterogeneous federated environments and highlight the need for techniques such as regularization or adaptive aggregation to counteract the effects of client drift.
+Once the data partitions were prepared, Federated training was carried out using the FedAvg algorithm, with all configuration choices guided by the insights from centralized training results, the availability of data, and the computational limitations of the hardware. The number of global rounds was set to 10, 20, and 30 for the 10-, 20-, and 50-client setups, respectively, ensuring that the dataset was effectively leveraged across clients while keeping training time manageable. To simulate realistic partial participation and avoid memory or CPU overload, only five clients were allowed to train or evaluate concurrently, which translated into fraction values of 0.5, 0.25, and 0.1 for the three client setups. Similarly, the number of local training epochs per client was fixed at 10, as centralized experiments had shown that this provided sufficient convergence without overfitting or unnecessary computation. These design choices together ensured computational efficiency, fairness across setups, and reliable evaluation of the effects of data heterogeneity and client distribution.
 
 \begin{figure}[h]
     \centering
@@ -266,6 +264,8 @@ Figure \ref{fig:fedavg_performance} illustrates the training performance of the 
     \label{fig:fedavg_performance}
 \end{figure}
 
+Figure \ref{fig:fedavg_performance} illustrates the training performance of the model under the 50-client federated setup across different data heterogeneity levels. Although no signs of divergence were observed during training, there is a clear trend of increasing instability as data becomes more non-IID. Specifically, the training loss, benign sample loss, anomalous sample loss, and AUC scores all exhibit greater fluctuations when moving from an IID partition to more skewed Dirichlet distributions (i.e., IID < Dirichlet $\alpha=0.6$ < Dirichlet $\alpha=0.3$). This suggests that as the non-IIDness of client data increases, the training process becomes more sensitive and volatile, likely due to inconsistent gradients and conflicting local model updates. These fluctuations reflect the challenge of achieving stable convergence in highly heterogeneous federated environments and highlight the need for techniques such as regularization or adaptive aggregation to counteract the effects of client drift.
+
 Table \ref{tbl:fedavg_results} shows that FedAvg achieves strong performance across both IID and non-IID (Dirichlet) settings on the CIC-IDS2017 and CIC-DDoS2019 datasets. As the number of clients increases from 10 to 50, both F1-score and accuracy tend to decrease slightly, especially under IID partitions, likely due to reduced data per client. Notably, the CIC-DDoS2019 dataset yields higher and more stable performance across all settings, with the best result (95.95\% F1-score and 95.81\% accuracy) observed under Dirichlet 0.3 with 20 clients. This suggests that FedAvg remains robust even under significant data heterogeneity, particularly when applied to datasets with clearer feature separability.
 
 \begin{table}[h]
@@ -291,7 +291,7 @@ Table \ref{tbl:fedavg_results} shows that FedAvg achieves strong performance acr
 
 \section{Client Drift \& Regularization}
 
-Under the common federated learning conditions of data heterogeneity and random client participation, a phenomenon known as client drift may occur. This issue arises when the model becomes overly fitted to the data of a few participating clients, leading to degraded generalization performance across the entire client population. To address this challenge, FedProx, an algorithm specifically designed to mitigate client drift through regularization, was employed. In the experiment, the proximal term ($\mu$) was tuned using a range of values \{1, 0.1, 0.01, $10^{-3}$, $10^{-4}$, $10^{-5}$, $10^{-6}$\}. For each partitioning scenario, the model performance was evaluated, and the configuration yielding the best results was selected for comparison with the baseline FedAvg approach.
+Under the common federated learning conditions of data heterogeneity and random client participation, a phenomenon known as client drift may occur. This issue arises when the model becomes overly fitted to the data of a few participating clients, leading to degraded generalization performance across the entire client population. To address this challenge, FedProx, an algorithm specifically designed to mitigate client drift through regularization, was employed. In the experiment, the proximal term ($\mu$) was tuned using a range of values $\{10^{-2}, 10^{-3}, 10^{-4}, 10^{-5}, 10^{-6}\}$. For each partitioning scenario, the model performance was evaluated, and the configuration yielding the best results was selected for comparison with the baseline FedAvg approach.
 
 The performance metrics obtained from these trials are summarized in Table \ref{tbl:fedprox_results}, which demonstrate that FedProx led to consistent improvements across all partitioning setups. Notably, the most significant gains were observed in the Dirichlet 0.3 setup with 20 clients, where FedProx achieved an F1-score of 96.80\% and an accuracy of 96.70\%, surpassing the baseline by a considerable margin. These findings suggest that applying a proximal regularization term effectively reduces the impact of client drift and enhances overall model robustness in highly heterogeneous environments.
 
@@ -334,7 +334,7 @@ To formally validate the observed performance improvements of FedProx over FedAv
 
 \section{Adaptive Federated Optimization}
 
-While FedProx addresses the issue of data heterogeneity by introducing a proximal term to reduce client-side drift, an alternative approach involves improving the server-side aggregation process using adaptive optimization algorithms. This section investigates two such methods (FedAdam and FedYogi) which are inspired by the popular optimizers (Adam and Yogi) used in centralized deep learning. These algorithms leverage momentum and adaptive learning rates to stabilize updates and accelerate convergence, particularly in federated environments where non-IID data leads to inconsistent or noisy model updates across clients. To assess their effectiveness, models were trained using FedAvg, FedAdam, and FedYogi under identical Dirichlet 0.3 non-IID settings. The learning rate ($\eta_l$) for FedAdam and FedYogi was tried with \{1, 0.1, 0.01, $10^{-3}$, $10^{-4}$\}, while momentum parameters, including $\beta_1$ and $\beta_2$, were kept at their default values, 0.9 and 0.99, respectively. Performance was tracked over 30 rounds using two key metrics: mean squared error (MSE) loss and area under the ROC curve (AUC). The results are presented in Figure \ref{fig:fed_optim_compare}, where solid lines denote MSE loss and dashed lines represent AUC progression over training rounds.
+While FedProx addresses the issue of data heterogeneity by introducing a proximal term to reduce client-side drift, an alternative approach involves improving the server-side aggregation process using adaptive optimization algorithms. This section investigates two such methods (FedAdam and FedYogi), which are inspired by the popular optimizers (Adam and Yogi) used in centralized deep learning. FedAdagrad, though originally proposed as part of this family, was excluded from consideration as prior research has consistently shown it to be outperformed by both FedAdam and FedYogi. These algorithms leverage momentum and adaptive learning rates to stabilize updates and accelerate convergence, particularly in federated environments where non-IID data leads to inconsistent or noisy model updates across clients. To assess their effectiveness, models were trained using FedAvg, FedAdam, and FedYogi under identical Dirichlet 0.3 non-IID settings. The learning rate ($\eta$) for FedAdam and FedYogi was tried with $\{10^{-2}, 10^{-3}, 10^{-4}, 10^{-5}\}$, while momentum parameters, including $\beta_1$ and $\beta_2$, were kept at their default values, 0.9 and 0.99, respectively. Performance was tracked over 30 rounds using two key metrics: mean squared error (MSE) loss and area under the ROC curve (AUC). The results are presented in Figure \ref{fig:fed_optim_compare}, where solid lines denote MSE loss and dashed lines represent AUC progression over training rounds.
 
 \begin{figure}[h]
     \centering
