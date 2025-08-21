@@ -9,7 +9,7 @@ The experiments were conducted on CIC-IDS2017 and CIC-DDoS2019 datasets, which p
     \label{fig:data_distribution}
 \end{figure}
 
-Both datasets store the network data using a flow structure instead of the common package structure. These flows are recorded using CICFlowMeter \citep{cicflowmeter}, a tool that converts packet captures (PCAP files) into flow details. Each flow represents a stream of packets between a source and destination and is characterized by a total of 82 features (The list of features is shown in the Appendices). These features are categorized as follows:
+Both datasets store the network data using a flow structure instead of the common package structure. These flows are recorded using CICFlowMeter \citep{cicflowmeter}, a tool that converts packet captures (PCAP files) into flow details. Each flow represents a stream of packets between a source and destination and is characterized by a total of 82 features. These features are categorized as follows:
 
 \begin{itemize}
     \item Metadata (5 features): Source IP, Source Port, Destination IP, Destination Port, Timestamp
@@ -35,7 +35,7 @@ To quantitatively assess the discriminative power of features, the Mann-Whitney 
     \item CIC-DDoS2019: 64 out of 76 features yielded p-values < 0.05
 \end{itemize}
 
-In many cases, the p-values were so small that they were recorded as 0.0, a result of floating-point underflow in the float64 data type. These values are not literally zero, but are smaller than the minimum representable positive number, often less than $2.23 \times 10^{-308}$ \citep{w3floatnum}. A sample of the p-values is presented in Table \ref{tbl:mannwhitneyu_results} to illustrate this point (The full results are shown in the Appendices).
+In many cases, the p-values were so small that they were recorded as 0.0, a result of floating-point underflow in the float64 data type. These values are not literally zero, but are smaller than the minimum representable positive number, often less than $2.23 \times 10^{-308}$ \citep{w3floatnum}. A sample of the p-values is presented in Table \ref{tbl:mannwhitneyu_results} to illustrate this point.
 
 \begin{table}[h]
     \caption{Mann-Whitney U test’s sample p-values.}
@@ -289,7 +289,7 @@ Table \ref{tbl:fedavg_results} shows that FedAvg achieves strong performance acr
 \end{table}
 
 
-\section{Client Drift \& Regularization}
+\section{Federated Regularization}
 
 Under the common federated learning conditions of data heterogeneity and random client participation, a phenomenon known as client drift may occur. This issue arises when the model becomes overly fitted to the data of a few participating clients, leading to degraded generalization performance across the entire client population. To address this challenge, FedProx, an algorithm specifically designed to mitigate client drift through regularization, was employed. In the experiment, the proximal term ($\mu$) was tuned using a range of values $\{10^{-2}, 10^{-3}, 10^{-4}, 10^{-5}, 10^{-6}\}$. For each partitioning scenario, the model performance was evaluated, and the configuration yielding the best results was selected for comparison with the baseline FedAvg approach.
 

@@ -34,11 +34,14 @@ def statistic():
         except Exception as e:
             print(f"Skipped {col} due to: {e}")
 
+    # results_df = pd.DataFrame(results)
     results_df = pd.DataFrame(results).sort_values("p-value")
+    # results_df["p-value"] = results_df["p-value"].apply(lambda x: "{:.2e}".format(x))
 
     print(benign_df.info(verbose=True))
     print(results_df)
     print(results_df[results_df["p-value"] < 0.05])
+    # results_df.to_csv("./abc.csv")
 
     # benign_df_0 = pd.read_parquet("data_1/Benign.parquet.zst")
     # benign_df_1 = pd.read_parquet("data_0/Benign.parquet.zst")
