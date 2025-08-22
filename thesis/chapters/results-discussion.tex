@@ -9,7 +9,7 @@ The experiments were conducted on CIC-IDS2017 and CIC-DDoS2019 datasets, which p
     \label{fig:data_distribution}
 \end{figure}
 
-Both datasets store the network data using a flow structure instead of the common package structure. These flows are recorded using CICFlowMeter \citep{cicflowmeter}, a tool that converts packet captures (PCAP files) into flow details. Each flow represents a stream of packets between a source and destination and is characterized by a total of 82 features. These features are categorized as follows:
+Both datasets store the network data using a flow structure instead of the common package structure. These flows are recorded using CICFlowMeter \citep{cicflowmeter}, a tool that converts packet captures (PCAP files) into flow details. Each flow represents a stream of packets between a source and destination and is characterized by a total of 82 features (The detailed list is shown in Appendix \ref{appendix:data_features}). These features are categorized as follows:
 
 \begin{itemize}
     \item Metadata (5 features): Source IP, Source Port, Destination IP, Destination Port, Timestamp
@@ -19,7 +19,7 @@ Both datasets store the network data using a flow structure instead of the commo
 
 These features provide a rich and diverse representation of network behavior, which enables models to capture both temporal and structural differences between normal and malicious activity.
 
-All numerical features are non-negative and exhibit a power-law distribution, as samples are visualized in Figure \ref{fig:feature_distribution}. This means that most feature values are concentrated near zero, while a small number of outliers have significantly larger values. This long-tailed distribution is typical of network traffic data, where most flows are short and lightweight, but some flows are exceptionally large or long-lived (e.g., bulk transfers, attacks). Such skewness introduces several modeling challenges, including (1) high variance and outlier sensitivity, (2) difficulty in setting universal thresholds or decision boundaries, and (3) the need for feature scaling or normalization to avoid domination by large-magnitude features.
+All numerical features are non-negative and exhibit a power-law distribution, as samples are visualized in Figure \ref{fig:feature_distribution} (The descriptive statistics for each feature can be found in Appendix \ref{appendix:descriptive_statistics}). This means that most feature values are concentrated near zero, while a small number of outliers have significantly larger values. This long-tailed distribution is typical of network traffic data, where most flows are short and lightweight, but some flows are exceptionally large or long-lived (e.g., bulk transfers, attacks). Such skewness introduces several modeling challenges, including (1) high variance and outlier sensitivity, (2) difficulty in setting universal thresholds or decision boundaries, and (3) the need for feature scaling or normalization to avoid domination by large-magnitude features.
 
 \begin{figure}[h]
     \centering
@@ -35,7 +35,7 @@ To quantitatively assess the discriminative power of features, the Mann-Whitney 
     \item CIC-DDoS2019: 64 out of 76 features yielded p-values < 0.05
 \end{itemize}
 
-In many cases, the p-values were so small that they were recorded as 0.0, a result of floating-point underflow in the float64 data type. These values are not literally zero, but are smaller than the minimum representable positive number, often less than $2.23 \times 10^{-308}$ \citep{w3floatnum}. A sample of the p-values is presented in Table \ref{tbl:mannwhitneyu_results} to illustrate this point.
+In many cases, the p-values were so small that they were recorded as 0.0, a result of floating-point underflow in the float64 data type. These values are not literally zero, but are smaller than the minimum representable positive number, often less than $2.23 \times 10^{-308}$ \citep{w3floatnum}. A sample of the p-values is presented in Table \ref{tbl:mannwhitneyu_results} to illustrate this point (The full version can be found in Appendix \ref{appendix:statistical_tests}).
 
 \begin{table}[h]
     \caption{Mann-Whitney U test’s sample p-values.}
@@ -43,11 +43,11 @@ In many cases, the p-values were so small that they were recorded as 0.0, a resu
     \begin{tabular}{l|c|c}
         Features & CIC-IDS2017 & CIC-DDoS2019 \\
         \hline\hline
-        Fwd IAT Min  & $6.40 \times 10^{-248}$ & 0.0 \\
-        Fwd Packets Length Total  & $9.55 \times 10^{-10}$ & 0.0 \\
-        Fwd IAT Std  & 0.0 & $7.80 \times 10^{-259}$ \\
-        Fwd IAT Mean  & 0.0 & $1.33 \times 10^{-228}$ \\
-        Total Fwd Packets  & 0.0 & $1.63 \times 10^{-25}$ \\
+        Bwd IAT Min  & $2.81 \times 10^{-47}$ & 0.0 \\
+        Fwd IAT Min  & $1.01 \times 10^{-303}$ & 0.0 \\
+        Idle Std  & 0.0 & $5.34 \times 10^{-105}$ \\
+        Flow Bytes/s  & 0.0 & $2.22 \times 10^{-284}$ \\
+        Active Std  & 0.0 & $7.95 \times 10^{-298}$ \\
     \end{tabular}
     \label{tbl:mannwhitneyu_results}
 \end{table}

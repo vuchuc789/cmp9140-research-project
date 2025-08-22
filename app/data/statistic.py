@@ -7,8 +7,15 @@ from scipy.stats import mannwhitneyu
 
 
 def statistic():
-    benign_df = pd.read_parquet("data_1/Benign.parquet.zst")
-    anomalous_df = pd.read_parquet("data_1/Anomalous.parquet.zst")
+    benign_df = pd.read_parquet("data/Benign.parquet.zst")
+    anomalous_df = pd.read_parquet("data/Anomalous.parquet.zst")
+
+    # cols = benign_df.columns
+    # for i in range(len(cols) // 2):
+    #     print(
+    #         f"{i + 1} & {cols[i]} & {(len(cols) // 2) + i + 1} & {cols[(len(cols) // 2) + i]} \\\\\n"
+    #         "\\hline"
+    #     )
 
     results = []
     for col in benign_df.columns:
@@ -30,18 +37,38 @@ def statistic():
                 benign_values, attack_values, alternative="two-sided"
             )
 
-            results.append({"Feature": col, "p-value": p_value})
+            results.append(
+                {
+                    "Feature": col,
+                    "mean": benign_values.mean(),
+                    "std": benign_values.std(),
+                    "min": benign_values.min(),
+                    "max": benign_values.max(),
+                    "p-value": p_value,
+                }
+            )
         except Exception as e:
             print(f"Skipped {col} due to: {e}")
 
     # results_df = pd.DataFrame(results)
-    results_df = pd.DataFrame(results).sort_values("p-value")
+    results_df = pd.DataFrame(results).sort_values("p-value", ascending=False)
+    # results_df["mean"] = results_df["mean"].apply(lambda x: "{:.2e}".format(x))
+    # results_df["std"] = results_df["std"].apply(lambda x: "{:.2e}".format(x))
+    # results_df["min"] = results_df["min"].apply(lambda x: "{:.2e}".format(x))
+    # results_df["max"] = results_df["max"].apply(lambda x: "{:.2e}".format(x))
     # results_df["p-value"] = results_df["p-value"].apply(lambda x: "{:.2e}".format(x))
 
     print(benign_df.info(verbose=True))
     print(results_df)
     print(results_df[results_df["p-value"] < 0.05])
-    # results_df.to_csv("./abc.csv")
+
+    # for i, r in enumerate(results_df.values):
+    #     print(f"{i + 1} & {' & '.join(r)} \\\\\n\\hline")
+
+    # results_df = results_df[results_df["p-value"] != "0.00e+00"]
+    #
+    # for i, r in enumerate(results_df.values):
+    #     print(f"{i + 1} & {' & '.join(r)} \\\\\n\\hline")
 
     # benign_df_0 = pd.read_parquet("data_1/Benign.parquet.zst")
     # benign_df_1 = pd.read_parquet("data_0/Benign.parquet.zst")
