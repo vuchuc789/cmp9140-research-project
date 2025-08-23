@@ -1,9 +1,11 @@
 .venv/
 **/__pycache__/
 
+data/*
 data*/*
 !data/.gitkeep
 
+model/*
 model*/*
 !model/.gitkeep
 

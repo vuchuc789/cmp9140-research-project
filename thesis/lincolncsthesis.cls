@@ -133,9 +133,9 @@
 \newcommand{\thesisDegree}[1]{\xdef\@degree{#1}}
 \lxdef \@programme      {Computer Science}
 \newcommand{\thesisProgramme}[1]{\xdef\@programme{#1}}
-\lxdef \@schoolname     {School of Computer Science}
+\lxdef \@schoolname     {School of Engineering and Physical Sciences}
 \newcommand{\thesisSchool}[1]{\xdef\@schoolname{#1}}
-\lxdef \@collegename    {College of Science}
+\lxdef \@collegename    {College of Health and Science}
 \newcommand{\thesisCollege}[1]{\xdef\@collegename{#1}}
 \lxdef \@universityname {University of Lincoln}
 \newcommand{\thesisUniversity}[1]{\xdef\@universityname{#1}}

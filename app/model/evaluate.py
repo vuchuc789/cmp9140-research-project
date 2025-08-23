@@ -149,20 +149,20 @@ def evaluate(
 
     # Plot training and validation losses
     ax1.plot(
-        batched_train_loss[:20],
+        batched_train_loss[:30],
         label="Training Loss",
         color="royalblue",
         linewidth=2,
     )
     ax1.plot(
-        batched_benign_test_loss[:20],
+        batched_benign_test_loss[:30],
         label="Benign Loss",
         color="tomato",
         linewidth=2,
         linestyle="--",
     )
     ax1.plot(
-        batched_anomalous_test_loss[:20],
+        batched_anomalous_test_loss[:30],
         label="Anomalous Loss",
         color="crimson",
         linewidth=2,
@@ -176,7 +176,7 @@ def evaluate(
     # Second Y-axis for AUC
     ax2 = ax1.twinx()
     ax2.plot(
-        batched_auc[:20],
+        batched_auc[:30],
         label="AUC",
         color="mediumseagreen",
         linewidth=2,
